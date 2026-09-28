@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(npm:*)",
+      "Shell(npx expo --version 2>&1; echo ---; ls patches/ 2>&1; echo ---; cat patches/* 2>/dev/null | head -n 50)",
+      "Shell(npx expo install --check 2 >& 1)",
+      "Shell(cmd --version 2>&1; command-code --version 2>&1; which cmd 2>&1; which command-code 2>&1; npm ls -g --depth=0 2>&1 | head -n 30)",
+      "Shell(npm view command-code dist-tags 2>&1; echo ---; npm view command-code versions --json 2>&1 | tail -n 20)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

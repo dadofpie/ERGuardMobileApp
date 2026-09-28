@@ -1,0 +1,199 @@
+diff --git a/node_modules/react-native/Libraries/Network/RCTHTTPRequestHandler.h b/node_modules/react-native/Libraries/Network/RCTHTTPRequestHandler.h
+index c3a27e1..2e08075 100644
+--- a/node_modules/react-native/Libraries/Network/RCTHTTPRequestHandler.h
++++ b/node_modules/react-native/Libraries/Network/RCTHTTPRequestHandler.h
+@@ -8,12 +8,14 @@
+ #import <React/RCTInvalidating.h>
+ #import <React/RCTURLRequestHandler.h>
+ 
+-typedef NSURLSessionConfiguration * (^NSURLSessionConfigurationProvider)(void);
++NS_ASSUME_NONNULL_BEGIN
++
++typedef NSURLSessionConfiguration *_Nonnull (^NSURLSessionConfigurationProvider)(void);
+ /**
+  *  The block provided via this function will provide the NSURLSessionConfiguration for all HTTP requests made by the
+  * app.
+  */
+-RCT_EXTERN void RCTSetCustomNSURLSessionConfigurationProvider(NSURLSessionConfigurationProvider /*provider*/);
++RCT_EXTERN void RCTSetCustomNSURLSessionConfigurationProvider(NSURLSessionConfigurationProvider _Nullable /*provider*/);
+ 
+ typedef NSURLRequest *_Nullable (^RCTHTTPRequestInterceptor)(NSURLRequest *request);
+ /**
+@@ -21,7 +23,7 @@ typedef NSURLRequest *_Nullable (^RCTHTTPRequestInterceptor)(NSURLRequest *reque
+  * they are sent. Return a modified request to override, or nil to use the
+  * original request unchanged.
+  */
+-RCT_EXTERN void RCTSetCustomHTTPRequestInterceptor(RCTHTTPRequestInterceptor /*interceptor*/);
++RCT_EXTERN void RCTSetCustomHTTPRequestInterceptor(RCTHTTPRequestInterceptor _Nullable /*interceptor*/);
+ 
+ /**
+  * This is the default RCTURLRequestHandler implementation for HTTP requests.
+@@ -29,3 +31,5 @@ RCT_EXTERN void RCTSetCustomHTTPRequestInterceptor(RCTHTTPRequestInterceptor /*i
+ @interface RCTHTTPRequestHandler : NSObject <RCTURLRequestHandler, RCTInvalidating>
+ 
+ @end
++
++NS_ASSUME_NONNULL_END
+diff --git a/node_modules/react-native/React/Base/RCTMultipartDataTask.h b/node_modules/react-native/React/Base/RCTMultipartDataTask.h
+index 9b94a26..d80e2e4 100644
+--- a/node_modules/react-native/React/Base/RCTMultipartDataTask.h
++++ b/node_modules/react-native/React/Base/RCTMultipartDataTask.h
+@@ -10,11 +10,13 @@
+ #import <React/RCTDefines.h>
+ #import <React/RCTMultipartStreamReader.h>
+ 
++NS_ASSUME_NONNULL_BEGIN
++
+ typedef void (^RCTMultipartDataTaskCallback)(
+     NSInteger statusCode,
+-    NSDictionary *headers,
+-    NSData *content,
+-    NSError *error,
++    NSDictionary *_Nullable headers,
++    NSData *_Nullable content,
++    NSError *_Nullable error,
+     BOOL done);
+ 
+ typedef NSURLRequest *_Nullable (^RCTMultipartDataTaskRequestInterceptor)(NSURLRequest *request);
+@@ -23,14 +25,17 @@ typedef NSURLRequest *_Nullable (^RCTMultipartDataTaskRequestInterceptor)(NSURLR
+  * requests before they are sent. Return a modified request to override, or nil
+  * to use the original request unchanged.
+  */
+-RCT_EXTERN void RCTSetCustomMultipartDataTaskRequestInterceptor(RCTMultipartDataTaskRequestInterceptor /*interceptor*/);
++RCT_EXTERN void RCTSetCustomMultipartDataTaskRequestInterceptor(
++    RCTMultipartDataTaskRequestInterceptor _Nullable /*interceptor*/);
+ 
+ @interface RCTMultipartDataTask : NSObject
+ 
+ - (instancetype)initWithURL:(NSURL *)url
+                 partHandler:(RCTMultipartDataTaskCallback)partHandler
+-            progressHandler:(RCTMultipartProgressCallback)progressHandler;
++            progressHandler:(RCTMultipartProgressCallback _Nullable)progressHandler;
+ 
+ - (void)startTask;
+ 
+ @end
++
++NS_ASSUME_NONNULL_END
+diff --git a/node_modules/react-native/React/CoreModules/RCTRedBox+Internal.h b/node_modules/react-native/React/CoreModules/RCTRedBox+Internal.h
+index d59e8a9..34ed0eb 100644
+--- a/node_modules/react-native/React/CoreModules/RCTRedBox+Internal.h
++++ b/node_modules/react-native/React/CoreModules/RCTRedBox+Internal.h
+@@ -10,6 +10,8 @@
+ 
+ #if RCT_DEV_MENU
+ 
++NS_ASSUME_NONNULL_BEGIN
++
+ @class RCTJSStackFrame;
+ 
+ @protocol RCTRedBoxControllerActionDelegate <NSObject>
+@@ -22,7 +24,7 @@
+ 
+ @protocol RCTRedBoxControlling <NSObject>
+ 
+-@property (nonatomic, weak) id<RCTRedBoxControllerActionDelegate> actionDelegate;
++@property (nonatomic, weak, nullable) id<RCTRedBoxControllerActionDelegate> actionDelegate;
+ 
+ - (void)showErrorMessage:(NSString *)message
+                withStack:(NSArray<RCTJSStackFrame *> *)stack
+@@ -39,4 +41,6 @@
+ 
+ @end
+ 
++NS_ASSUME_NONNULL_END
++
+ #endif
+diff --git a/node_modules/react-native/React/CoreModules/RCTRedBox2Controller+Internal.h b/node_modules/react-native/React/CoreModules/RCTRedBox2Controller+Internal.h
+index 7e51918..5292274 100644
+--- a/node_modules/react-native/React/CoreModules/RCTRedBox2Controller+Internal.h
++++ b/node_modules/react-native/React/CoreModules/RCTRedBox2Controller+Internal.h
+@@ -11,11 +11,13 @@
+ 
+ #if RCT_DEV_MENU
+ 
++NS_ASSUME_NONNULL_BEGIN
++
+ typedef void (^RCTRedBox2ButtonPressHandler)(void);
+ 
+ @interface RCTRedBox2Controller : UIViewController <RCTRedBox2Controlling, UITableViewDelegate, UITableViewDataSource>
+ 
+-@property (nonatomic, weak) id<RCTRedBoxControllerActionDelegate> actionDelegate;
++@property (nonatomic, weak, nullable) id<RCTRedBoxControllerActionDelegate> actionDelegate;
+ 
+ - (instancetype)initWithCustomButtonTitles:(NSArray<NSString *> *)customButtonTitles
+                       customButtonHandlers:(NSArray<RCTRedBox2ButtonPressHandler> *)customButtonHandlers;
+@@ -31,4 +33,6 @@ typedef void (^RCTRedBox2ButtonPressHandler)(void);
+ - (void)dismiss;
+ @end
+ 
++NS_ASSUME_NONNULL_END
++
+ #endif
+diff --git a/node_modules/react-native/React/CoreModules/RCTRedBox2ErrorParser+Internal.h b/node_modules/react-native/React/CoreModules/RCTRedBox2ErrorParser+Internal.h
+index 0a1fc88..298311f 100644
+--- a/node_modules/react-native/React/CoreModules/RCTRedBox2ErrorParser+Internal.h
++++ b/node_modules/react-native/React/CoreModules/RCTRedBox2ErrorParser+Internal.h
+@@ -7,6 +7,8 @@
+ 
+ #import <Foundation/Foundation.h>
+ 
++NS_ASSUME_NONNULL_BEGIN
++
+ /**
+  * Structured error data extracted from a raw error message.
+  * Mirrors LogBoxLog.js / parseLogBoxLog.js data model.
+@@ -44,3 +46,5 @@
+                                    isFatal:(BOOL)isFatal;
+ 
+ @end
++
++NS_ASSUME_NONNULL_END
+diff --git a/node_modules/react-native/React/CoreModules/RCTWebSocketModule.h b/node_modules/react-native/React/CoreModules/RCTWebSocketModule.h
+index 0deba70..332d1a5 100644
+--- a/node_modules/react-native/React/CoreModules/RCTWebSocketModule.h
++++ b/node_modules/react-native/React/CoreModules/RCTWebSocketModule.h
+@@ -20,7 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
+ 
+ @class SRWebSocket;
+ 
+-typedef SRWebSocket * (^SRWebSocketProvider)(NSURLRequest *request);
++typedef SRWebSocket *_Nonnull (^SRWebSocketProvider)(NSURLRequest *request);
+ 
+ RCT_EXTERN void RCTSetCustomSRWebSocketProvider(SRWebSocketProvider provider);
+ 
+diff --git a/node_modules/react-native/React/Views/RCTModalHostView.h b/node_modules/react-native/React/Views/RCTModalHostView.h
+index ca2a97a..d6f8d99 100644
+--- a/node_modules/react-native/React/Views/RCTModalHostView.h
++++ b/node_modules/react-native/React/Views/RCTModalHostView.h
+@@ -16,6 +16,9 @@
+ @class RCTBridge;
+ @class RCTModalHostViewController;
+ 
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wdeprecated-declarations"
++
+ @protocol RCTModalHostViewInteractor;
+ 
+ __attribute__((deprecated("This API will be removed along with the legacy architecture.")))
+@@ -61,4 +64,6 @@ __attribute__((deprecated("This API will be removed along with the legacy archit
+ 
+ @end
+ 
++#pragma clang diagnostic pop
++
+ #endif // RCT_REMOVE_LEGACY_ARCH
+diff --git a/node_modules/react-native/React/Views/RCTShadowView+Internal.h b/node_modules/react-native/React/Views/RCTShadowView+Internal.h
+index 0455863..5fb7d88 100644
+--- a/node_modules/react-native/React/Views/RCTShadowView+Internal.h
++++ b/node_modules/react-native/React/Views/RCTShadowView+Internal.h
+@@ -13,6 +13,9 @@
+ 
+ @interface RCTShadowView (Internal)
+ 
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+ @property (nonatomic, weak, readwrite) RCTRootShadowView *rootView;
++#pragma clang diagnostic pop
+ 
+ @end

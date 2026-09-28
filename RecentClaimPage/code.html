@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-surface": "#1b1b21", "tertiary": "#6f4c00", "on-primary-fixed-variant": "#93000f", "surface-container-lowest": "#ffffff", "outline": "#916f6b", "on-primary-fixed": "#410003", "on-primary": "#ffffff", "on-secondary-fixed-variant": "#832600", "secondary": "#ac3400", "surface-container-high": "#eae7ef", "on-tertiary": "#ffffff", "surface-variant": "#e4e1ea", "on-tertiary-fixed": "#281900", "secondary-fixed-dim": "#ffb59d", "background": "#fbf8ff", "error": "#ba1a1a", "on-primary-container": "#ffe6e3", "tertiary-container": "#8e6200", "surface-dim": "#dbd9e1", "secondary-fixed": "#ffdbd0", "primary-fixed": "#ffdad6", "on-tertiary-container": "#ffe9ca", "inverse-primary": "#ffb3ac", "on-secondary": "#ffffff", "surface-bright": "#fbf8ff", "on-background": "#1b1b21", "error-container": "#ffdad6", "surface": "#fbf8ff", "on-error-container": "#93000a", "surface-container-highest": "#e4e1ea", "surface-container-low": "#f5f2fb", "tertiary-fixed-dim": "#fabc4d", "primary-container": "#d31320", "tertiary-fixed": "#ffdead", "surface-container": "#efecf5", "primary": "#a80013", "on-secondary-fixed": "#390b00", "primary-fixed-dim": "#ffb3ac", "inverse-surface": "#303036", "secondary-container": "#fe642d", "surface-tint": "#c00017", "inverse-on-surface": "#f2eff8", "on-error": "#ffffff", "on-surface-variant": "#5d3f3c", "on-secondary-container": "#5a1700", "outline-variant": "#e6bdb8", "on-tertiary-fixed-variant": "#604100" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin": "1rem", "space-lg": "1.5rem", "space-sm": "0.5rem", "gutter-desktop": "1.5rem", "space-md": "1rem", "gutter": "1rem", "space-xl": "2.5rem", "margin-desktop": "3rem", "space-xs": "0.25rem" }, "fontFamily": { "display-lg-mobile": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "label-lg": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"] }, "fontSize": { "display-lg-mobile": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800" }], "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }] } } } }</script><style>@layer base{html,body{width:100%;margin:0;padding:0;background-color:#fbf8ff;color:#1b1b21;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:max(env(safe-area-inset-bottom,0px),8px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><button aria-label="Menu Navigation" class="min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 text-on-surface active:scale-95 transition-transform"><span class="material-symbols-outlined text-[24px]">menu</span></button><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary shadow-sm"><span class="material-symbols-outlined text-[18px]">emergency</span></div><div class="flex flex-col"><span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary leading-none">Medicare Plus</span><span class="font-headline-sm text-headline-sm text-on-surface leading-tight">Claims &amp; Reimbursement</span></div></div></div><div class="flex items-center gap-space-xs"><a aria-label="Emergency Hotline 24/7" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-error-container text-on-error-container active:scale-95 transition-transform shadow-sm" href="tel:911"><span class="material-symbols-outlined text-[20px]">call</span></a><a class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full active:opacity-80 transition-opacity" data-path="profile" href="#"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1XJs48tOyEkuJnU2vTMPSIpRJ675R97DQAMGQgZlHnV_tswABfy1F9I-g40eV46CCogaZ8vZP0QrPqsnC4FfHxa8As1EzeBvrQ_wK20qnc4iMLu_Tc_VKZZpSBqJnf7O2by3LXsVNzdKQiX7yvVPlz-J7qE4h2IFl4J0u4fl6xxvqoCxMPAoPAIDKwyHheuT-__n_mRRAkuykvL5r4iRLRiXRlCfiiDDEyorp7lw_qZ0v7wz6MWAYWUVVhyJat4ZaXRhWL16oVx"/></a></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface"><div class="flex flex-col w-full">
+<!-- Interactive Claim Filing Modal / Overlay Drawer (Hidden by default) -->
+<div class="fixed inset-0 z-50 bg-on-surface/40 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 flex flex-col justify-end" id="fileClaimModal">
+<div class="bg-surface-container-lowest rounded-t-xl max-h-[85vh] overflow-y-auto p-margin flex flex-col gap-space-md shadow-2xl transition-transform duration-300 transform translate-y-full" id="fileClaimDrawer">
+<div class="w-12 h-1.5 bg-surface-variant rounded-full mx-auto self-center"></div>
+<div class="flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider font-bold">Fast Reimbursement</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">File Emergency Claim</h2>
+</div>
+<button aria-label="Close dialog" class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant active:scale-95 transition-transform" id="closeModalBtn">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        Upload clear photos or PDFs of your hospital invoice, medical abstract, and official receipts. Average processing time is 48-72 business hours.
+      </p>
+<div class="space-y-space-sm">
+<label class="font-label-md text-label-md text-on-surface font-semibold">Hospital or Medical Facility</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-[20px] text-outline">local_hospital</span>
+<input class="w-full h-12 pl-10 pr-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline outline-none" placeholder="e.g., St. Luke's Medical Center, Makati Med" type="text"/>
+</div>
+</div>
+<div class="space-y-space-sm">
+<label class="font-label-md text-label-md text-on-surface font-semibold">Incident / Admission Date</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-[20px] text-outline">calendar_today</span>
+<input class="w-full h-12 pl-10 pr-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md outline-none" type="date"/>
+</div>
+</div>
+<div class="space-y-space-sm">
+<label class="font-label-md text-label-md text-on-surface font-semibold">Total Out-of-Pocket Expense (PHP)</label>
+<div class="relative flex items-center">
+<span class="font-headline-sm text-headline-sm text-primary font-bold absolute left-3">₱</span>
+<input class="w-full h-12 pl-8 pr-3 rounded-lg bg-surface-container-low text-on-surface font-headline-sm text-headline-sm outline-none" placeholder="0.00" type="number"/>
+</div>
+</div>
+<div class="space-y-space-sm">
+<label class="font-label-md text-label-md text-on-surface font-semibold">Upload Invoices &amp; Receipts</label>
+<div class="p-space-md rounded-xl bg-surface-container-lowest shadow-sm flex flex-col items-center justify-center gap-space-xs text-center cursor-pointer active:bg-surface-container-low transition-colors">
+<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[24px]">cloud_upload</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Tap to capture or browse files</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Supports JPG, PNG, PDF up to 25MB total</span>
+</div>
+</div>
+<button class="w-full h-13 rounded-full bg-gradient-to-r from-primary-container to-secondary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-xs shadow-lg active:scale-98 transition-transform mt-space-sm" id="submitClaimBtn">
+<span class="material-symbols-outlined text-[20px]">send</span>
+        Submit Claim for Verification
+      </button>
+</div>
+</div>
+<!-- Main Scrollable Content Container -->
+<div class="px-margin pt-space-sm pb-space-xl flex flex-col gap-space-lg">
+<!-- Header Context & Visual Banner -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs text-secondary">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+<span class="font-label-sm text-label-sm font-bold uppercase tracking-wider">Philippine Emergency Coverage</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface font-extrabold tracking-tight">Claims &amp; Reimbursements</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">
+        Fast, hassle-free reimbursement for emergency room visits and pay-and-claim out-of-pocket medical expenses.
+      </p>
+</div>
+<!-- Quick Info Banner: All-Access Reminder -->
+<div class="p-space-md rounded-xl bg-secondary-fixed text-on-secondary-fixed shadow-sm flex items-start gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container-lowest/80 flex-shrink-0 flex items-center justify-center text-secondary mt-0.5">
+<span class="material-symbols-outlined text-[22px]">contact_support</span>
+</div>
+<div class="flex-1 flex flex-col gap-0.5">
+<span class="font-label-md text-label-md font-bold uppercase tracking-wide text-on-secondary-fixed">All-Access Hospital Advisory</span>
+<p class="font-body-sm text-body-sm leading-relaxed text-on-secondary-fixed">
+          Did you call before admission? Coordinated ER admissions are approved cashless on-site. For pay-and-claim out-of-pocket expenses, submit your receipts below.
+        </p>
+</div>
+</div>
+<!-- Primary Action Hero Card: File New Claim -->
+<div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary-container to-secondary text-on-primary p-space-md shadow-md flex flex-col justify-between gap-space-md">
+<!-- Background Ambient Glow & Visual Element -->
+<div class="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-surface-container-lowest/10 blur-2xl pointer-events-none"></div>
+<div class="absolute right-3 bottom-3 opacity-15 pointer-events-none">
+<span class="material-symbols-outlined text-[110px] leading-none">document_scanner</span>
+</div>
+<div class="flex flex-col gap-space-xs relative z-10">
+<div class="inline-flex items-center gap-1.5 px-space-sm py-0.5 rounded-full bg-surface-container-lowest/20 backdrop-blur-md self-start">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+<span class="font-label-sm text-label-sm font-bold tracking-wide">3-Minute Submission</span>
+</div>
+<h2 class="font-headline-md text-headline-md font-extrabold text-on-primary">File an Emergency Claim</h2>
+<p class="font-body-sm text-body-sm text-on-primary-container max-w-[85%] leading-relaxed">
+          Submit emergency room receipts, doctor's fees, or diagnostic bills for rapid review and direct GCash or bank payout.
+        </p>
+</div>
+<div class="flex items-center gap-space-sm relative z-10 pt-space-xs">
+<button class="flex-1 h-12 rounded-full bg-surface-container-lowest text-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-xs shadow-md active:scale-95 transition-transform" id="openModalBtn">
+<span class="material-symbols-outlined text-[20px]">add_a_photo</span>
+          File New Claim
+        </button>
+<button aria-label="View Requirements" class="h-12 w-12 rounded-full bg-surface-container-lowest/20 backdrop-blur-md text-on-primary flex items-center justify-center active:scale-95 transition-transform" id="quickGuideBtn">
+<span class="material-symbols-outlined text-[22px]">info</span>
+</button>
+</div>
+</div>
+<!-- Status Filter Pills -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface">Recent Claims</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">3 Records Found</span>
+</div>
+<div class="flex items-center gap-space-xs overflow-x-auto pb-1" id="filterContainer">
+<button class="filter-tab px-space-md py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md active:scale-95 transition-all shadow-sm" data-filter="all">
+          All (3)
+        </button>
+<button class="filter-tab px-space-md py-2 rounded-full bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md active:scale-95 transition-all shadow-sm flex items-center gap-1.5" data-filter="in-review">
+<span>In Review (1)</span>
+<span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+</button>
+<button class="filter-tab px-space-md py-2 rounded-full bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md active:scale-95 transition-all shadow-sm" data-filter="settled">
+          Settled (2)
+        </button>
+</div>
+</div>
+<!-- Claims List -->
+<div class="flex flex-col gap-space-md" id="claimsList">
+<!-- Card 1: St. Luke's Medical Center - In Review -->
+<div class="claim-card rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md" data-status="in-review">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex items-start gap-space-sm">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[26px]">local_hospital</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline font-bold uppercase tracking-wider">#CLM-2025-0842</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold leading-tight">St. Luke's Medical Center</h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Bonifacio Global City, Taguig</span>
+</div>
+</div>
+<div class="px-space-sm py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+            In Review
+          </div>
+</div>
+<div class="grid grid-cols-2 gap-space-sm p-space-sm rounded-lg bg-surface-container-low">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Date of ER Visit</span>
+<span class="font-label-md text-label-md text-on-surface">Feb 12, 2025</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Coverage Type</span>
+<span class="font-label-md text-label-md text-on-surface truncate">ER Outpatient Care</span>
+</div>
+<div class="flex flex-col col-span-2 pt-1 border-t-0">
+<span class="font-label-sm text-label-sm text-outline">Claimed Amount</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">₱14,850.00</span>
+</div>
+</div>
+<!-- Stepper Progress Preview -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span class="text-primary font-bold">1. Receipts In</span>
+<span class="text-tertiary font-bold">2. Medical Audit</span>
+<span class="text-outline">3. Payout</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-high overflow-hidden flex">
+<div class="w-1/3 bg-primary h-full"></div>
+<div class="w-1/3 bg-tertiary h-full animate-pulse"></div>
+<div class="w-1/3 bg-transparent h-full"></div>
+</div>
+<span class="font-body-sm text-body-sm text-tertiary-container font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+            Medical officer verifying diagnostic itemization (Est. 24h)
+          </span>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="font-body-sm text-body-sm text-outline">Disbursement via GCash</span>
+<button class="track-btn px-space-md py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold active:scale-95 transition-transform flex items-center gap-1">
+            Track Status
+            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 2: Makati Medical Center - Settled -->
+<div class="claim-card rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md" data-status="settled">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex items-start gap-space-sm">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-[26px]">radiology</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline font-bold uppercase tracking-wider">#CLM-2024-9104</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold leading-tight">Makati Medical Center</h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Amorsolo St., Legaspi Village</span>
+</div>
+</div>
+<div class="px-space-sm py-1 rounded-full bg-surface-container text-secondary font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+            Settled / Paid
+          </div>
+</div>
+<div class="grid grid-cols-2 gap-space-sm p-space-sm rounded-lg bg-surface-container-low">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Date of ER Visit</span>
+<span class="font-label-md text-label-md text-on-surface">Nov 28, 2024</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Coverage Type</span>
+<span class="font-label-md text-label-md text-on-surface truncate">CT Scan &amp; Blood Panel</span>
+</div>
+<div class="flex flex-col col-span-2 pt-1">
+<span class="font-label-sm text-label-sm text-outline">Reimbursed Amount</span>
+<span class="font-headline-sm text-headline-sm text-secondary font-bold">₱8,400.00</span>
+</div>
+</div>
+<div class="p-space-sm rounded-lg bg-surface-container-lowest flex items-center justify-between shadow-xs">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Disbursed To</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">GCash (0917 •••• 567)</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Ref: #GC-90129</span>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="font-body-sm text-body-sm text-outline">Processed in 36 hrs</span>
+<button class="px-space-md py-1.5 rounded-full bg-surface-container-low text-on-surface font-label-md text-label-md font-semibold active:scale-95 transition-transform flex items-center gap-1">
+            View Voucher
+            <span class="material-symbols-outlined text-[16px]">receipt_long</span>
+</button>
+</div>
+</div>
+<!-- Card 3: The Medical City - Settled -->
+<div class="claim-card rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md" data-status="settled">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex items-start gap-space-sm">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[26px]">healing</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline font-bold uppercase tracking-wider">#CLM-2024-7719</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold leading-tight">The Medical City</h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Ortigas Avenue, Pasig City</span>
+</div>
+</div>
+<div class="px-space-sm py-1 rounded-full bg-surface-container text-secondary font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+            Settled / Paid
+          </div>
+</div>
+<div class="grid grid-cols-2 gap-space-sm p-space-sm rounded-lg bg-surface-container-low">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Date of ER Visit</span>
+<span class="font-label-md text-label-md text-on-surface">Aug 14, 2024</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Coverage Type</span>
+<span class="font-label-md text-label-md text-on-surface truncate">Trauma &amp; Wound Treatment</span>
+</div>
+<div class="flex flex-col col-span-2 pt-1">
+<span class="font-label-sm text-label-sm text-outline">Reimbursed Amount</span>
+<span class="font-headline-sm text-headline-sm text-secondary font-bold">₱5,200.00</span>
+</div>
+</div>
+<div class="p-space-sm rounded-lg bg-surface-container-lowest flex items-center justify-between shadow-xs">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]">account_balance</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Disbursed To</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">BDO Unibank (•••• 412)</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Ref: #BDO-3381</span>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="font-body-sm text-body-sm text-outline">Processed in 42 hrs</span>
+<button class="px-space-md py-1.5 rounded-full bg-surface-container-low text-on-surface font-label-md text-label-md font-semibold active:scale-95 transition-transform flex items-center gap-1">
+            View Voucher
+            <span class="material-symbols-outlined text-[16px]">receipt_long</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Required Documents Checklist Accordion / Helper -->
+<div class="rounded-xl bg-surface-container-low p-space-md flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center justify-between cursor-pointer" id="checklistToggle">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center text-primary shadow-xs">
+<span class="material-symbols-outlined text-[22px]">fact_check</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">What you need to file</h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Ensure zero delays with complete papers</span>
+</div>
+</div>
+<button aria-label="Expand checklist" class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center text-on-surface transition-transform" id="checklistChevron">
+<span class="material-symbols-outlined text-[20px]">expand_more</span>
+</button>
+</div>
+<div class="flex flex-col gap-space-sm" id="checklistContent">
+<div class="flex items-start gap-space-sm p-space-sm rounded-lg bg-surface-container-lowest">
+<span class="w-6 h-6 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Official Receipt (OR) / Hospital Invoice</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Must show registered BIR tin &amp; proof of emergency cashier payment.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-sm p-space-sm rounded-lg bg-surface-container-lowest">
+<span class="w-6 h-6 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">ER Medical Certificate or Clinical Abstract</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Stating initial emergency diagnosis signed by the attending ER physician.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-sm p-space-sm rounded-lg bg-surface-container-lowest">
+<span class="w-6 h-6 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Itemized Bill / Statement of Account (SOA)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Clear breakdown of medicines, ER facility charges, and medical supplies.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-sm p-space-sm rounded-lg bg-surface-container-lowest">
+<span class="w-6 h-6 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm font-bold flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Valid Philippine Government ID</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Passport, PhilSys National ID, Driver's License, or UMID of the member.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 24/7 Support Hotline Helper -->
+<div class="rounded-xl bg-surface-container-lowest p-space-md shadow-md flex items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-sm">
+<div class="w-11 h-11 rounded-full bg-error-container text-on-error-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[24px]">support_agent</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wider">Emergency Authorization</span>
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">24/7 Medical Concierge</h4>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Admitted now? Call for instant cashless authorization.</span>
+</div>
+</div>
+<a class="h-11 px-space-md rounded-full bg-primary text-on-primary font-label-md text-label-md font-bold flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-transform flex-shrink-0" href="tel:0288889900">
+<span class="material-symbols-outlined text-[18px]">call</span>
+        Call Hotline
+      </a>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    // Filter Tab Logic
+    const filterTabs = document.querySelectorAll('.filter-tab');
+    const claimCards = document.querySelectorAll('.claim-card');
+
+    filterTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const filter = tab.getAttribute('data-filter');
+
+        // Update active tab styles
+        filterTabs.forEach(t => {
+          t.classList.remove('bg-primary', 'text-on-primary');
+          t.classList.add('bg-surface-container-lowest', 'text-on-surface-variant');
+        });
+        tab.classList.remove('bg-surface-container-lowest', 'text-on-surface-variant');
+        tab.classList.add('bg-primary', 'text-on-primary');
+
+        // Filter cards
+        claimCards.forEach(card => {
+          const cardStatus = card.getAttribute('data-status');
+          if (filter === 'all' || cardStatus === filter) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Modal Drawer Toggle
+    const openModalBtn = document.getElementById('openModalBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const fileClaimModal = document.getElementById('fileClaimModal');
+    const fileClaimDrawer = document.getElementById('fileClaimDrawer');
+    const submitClaimBtn = document.getElementById('submitClaimBtn');
+
+    function openModal() {
+      fileClaimModal.classList.remove('hidden');
+      setTimeout(() => {
+        fileClaimModal.classList.remove('opacity-0');
+        fileClaimDrawer.classList.remove('translate-y-full');
+      }, 10);
+    }
+
+    function closeModal() {
+      fileClaimModal.classList.add('opacity-0');
+      fileClaimDrawer.classList.add('translate-y-full');
+      setTimeout(() => {
+        fileClaimModal.classList.add('hidden');
+      }, 300);
+    }
+
+    if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+
+    fileClaimModal.addEventListener('click', (e) => {
+      if (e.target === fileClaimModal) {
+        closeModal();
+      }
+    });
+
+    if (submitClaimBtn) {
+      submitClaimBtn.addEventListener('click', () => {
+        submitClaimBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[20px]">sync</span> Submitting...';
+        setTimeout(() => {
+          alert('Claim submitted successfully! Claim reference #CLM-2025-' + Math.floor(1000 + Math.random() * 9000) + ' has been assigned.');
+          submitClaimBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">send</span> Submit Claim for Verification';
+          closeModal();
+        }, 1200);
+      });
+    }
+
+    // Checklist Accordion Toggle
+    const checklistToggle = document.getElementById('checklistToggle');
+    const checklistContent = document.getElementById('checklistContent');
+    const checklistChevron = document.getElementById('checklistChevron');
+    const quickGuideBtn = document.getElementById('quickGuideBtn');
+
+    function toggleChecklist() {
+      const isHidden = checklistContent.classList.contains('hidden');
+      if (isHidden) {
+        checklistContent.classList.remove('hidden');
+        checklistChevron.style.transform = 'rotate(0deg)';
+      } else {
+        checklistContent.classList.add('hidden');
+        checklistChevron.style.transform = 'rotate(180deg)';
+      }
+    }
+
+    if (checklistToggle) checklistToggle.addEventListener('click', toggleChecklist);
+    if (quickGuideBtn) {
+      quickGuideBtn.addEventListener('click', () => {
+        checklistContent.classList.remove('hidden');
+        checklistChevron.style.transform = 'rotate(0deg)';
+        checklistToggle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+
+    // Track status button interaction
+    const trackBtns = document.querySelectorAll('.track-btn');
+    trackBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        alert('Status: Under active review by Medical Auditor Dr. R. Santos. Estimated completion: Within 24 hours.');
+      });
+    });
+
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-4px_20px_rgba(211,19,32,0.06)]" data-active-classes="text-primary font-bold"><div class="flex items-center justify-around h-16 px-space-xs"><a class="min-w-[44px] min-h-[44px] flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant transition-colors" data-path="home" href="#"><span class="material-symbols-outlined text-[22px]">health_and_safety</span><span class="font-label-sm text-label-sm">Home</span></a><a class="min-w-[44px] min-h-[44px] flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant transition-colors" data-path="hospitals" href="#"><span class="material-symbols-outlined text-[22px]">local_hospital</span><span class="font-label-sm text-label-sm">Hospitals</span></a><a class="min-w-[44px] min-h-[44px] flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant transition-colors" data-path="my-card" href="#"><span class="material-symbols-outlined text-[22px]">badge</span><span class="font-label-sm text-label-sm">My Card</span></a><a class="min-w-[44px] min-h-[44px] flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant transition-colors" data-path="claims-reimbursement" href="#"><span class="material-symbols-outlined text-[22px]">receipt_long</span><span class="font-label-sm text-label-sm">Claims</span></a><a class="min-w-[44px] min-h-[44px] flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant transition-colors" data-path="profile" href="#"><span class="material-symbols-outlined text-[22px]">person</span><span class="font-label-sm text-label-sm">Profile</span></a></div></nav></body></html>

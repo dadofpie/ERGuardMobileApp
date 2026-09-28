@@ -1,0 +1,40 @@
+diff --git a/node_modules/expo/ios/AppDelegates/ExpoReactNativeFactory.h b/node_modules/expo/ios/AppDelegates/ExpoReactNativeFactory.h
+index 3bac5bc..d0b5d23 100644
+--- a/node_modules/expo/ios/AppDelegates/ExpoReactNativeFactory.h
++++ b/node_modules/expo/ios/AppDelegates/ExpoReactNativeFactory.h
+@@ -3,15 +3,12 @@
+ #import <ExpoModulesCore/ExpoModulesCore.h>
+ #import <Expo/RCTAppDelegateUmbrella.h>
+ 
+-@protocol RCTHostDelegate;
+-@protocol RCTHostRuntimeDelegate;
+-
+ NS_SWIFT_NAME(ExpoReactNativeFactoryObjC)
+ #if !TARGET_OS_OSX
+-@interface EXReactNativeFactory : RCTReactNativeFactory <RCTHostDelegate>
++@interface EXReactNativeFactory : RCTReactNativeFactory
+ #else
+ // TODO: remove when bumping to react-native-macos 0.85
+-@interface EXReactNativeFactory : RCTReactNativeFactory <RCTHostDelegate, RCTHostRuntimeDelegate>
++@interface EXReactNativeFactory : RCTReactNativeFactory
+ #endif
+ 
+ @end
+diff --git a/node_modules/expo/ios/AppDelegates/ExpoReactNativeFactory.mm b/node_modules/expo/ios/AppDelegates/ExpoReactNativeFactory.mm
+index 18364a8..9a1335b 100644
+--- a/node_modules/expo/ios/AppDelegates/ExpoReactNativeFactory.mm
++++ b/node_modules/expo/ios/AppDelegates/ExpoReactNativeFactory.mm
+@@ -22,6 +22,13 @@
+ #import <react/renderer/runtimescheduler/RuntimeSchedulerBinding.h>
+ #import <ExpoModulesCore/EXReactSchedulerDispatch.h>
+ 
++#if TARGET_OS_OSX
++@interface EXReactNativeFactory () <RCTHostDelegate, RCTHostRuntimeDelegate>
++#else
++@interface EXReactNativeFactory () <RCTHostDelegate>
++#endif
++@end
++
+ @implementation EXReactNativeFactory {
+   EXAppContext *_appContext;
+ }

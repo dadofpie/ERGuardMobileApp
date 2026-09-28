@@ -1,0 +1,2 @@
+export const CUSTOMER_SERVICE_NUMBER = '+63 919 058 5858';
+export const CUSTOMER_SERVICE_TEL = 'tel:+639190585858';

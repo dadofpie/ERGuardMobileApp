@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>ER Guard Onboarding - Medicare Plus</title>
+<!-- Google Fonts: Plus Jakarta Sans & Caveat for the script 'Plus' -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 CDN with forms & container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              red: '#D31320',
+              deepRed: '#800010',
+              crimson: '#9e0c1b',
+              orange: '#FF5B22',
+              coral: '#FF7A45',
+              dark: '#111827',
+              muted: '#4B5563'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            script: ['"Caveat"', 'cursive'],
+            cardno: ['"Space Grotesk"', 'monospace']
+          },
+          boxShadow: {
+            'card-front': '0 24px 44px -10px rgba(230, 42, 16, 0.28), 0 10px 18px -6px rgba(0, 0, 0, 0.08)',
+            'card-back': '0 20px 36px -12px rgba(128, 0, 16, 0.35), 0 8px 16px -4px rgba(0, 0, 0, 0.1)',
+            'cta': '0 12px 24px -4px rgba(211, 19, 32, 0.38)'
+          }
+        }
+      }
+    }
+  </script>
+<!-- Custom Styles for Precise Card Geometries & Ambient Visual Effects -->
+<style data-purpose="card-geometry">
+    /* Subtle background ambient mesh */
+    .ambient-glow {
+      background: radial-gradient(circle at 50% 25%, rgba(255, 91, 34, 0.09) 0%, rgba(211, 19, 32, 0.04) 45%, transparent 70%);
+    }
+
+    /* Wave styling using layered SVGs and pseudo elements */
+    .card-sheen {
+      position: relative;
+      overflow: hidden;
+    }
+    .card-sheen::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 50%);
+      pointer-events: none;
+    }
+
+    /* iOS home bar and notch bounds */
+    .ios-shell {
+      max-width: 414px;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+  </style>
+</head>
+<body class="bg-[#F4F4F6] text-slate-900 font-sans antialiased flex justify-center items-center min-h-screen p-0 sm:p-4">
+<!-- BEGIN: MobileContainer -->
+<main class="ios-shell w-full bg-[#FCFBFF] shadow-2xl relative flex flex-col justify-between overflow-hidden sm:rounded-[44px] sm:border-[8px] sm:border-slate-900/90" data-purpose="mobile-screen-wrapper">
+<!-- Ambient Warm Aura Background -->
+<div class="absolute inset-0 ambient-glow pointer-events-none z-0"></div>
+<!-- Top Glow Accent -->
+<div class="absolute -top-16 -right-16 w-52 h-52 bg-gradient-to-br from-amber-200/40 via-red-200/20 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+<!-- BEGIN: TopBarSection -->
+<header class="relative z-20 w-full pt-3 px-7 pb-2" data-purpose="status-and-nav-header">
+<!-- iOS Status Bar -->
+<div class="flex justify-between items-center text-[14px] font-semibold tracking-tight text-slate-800 mb-4 select-none">
+<span class="pl-1 text-[15px] font-bold">9:41</span>
+<div class="flex items-center space-x-2 text-slate-800">
+<!-- Signal Icon -->
+<svg class="w-4 h-4 fill-current" viewbox="0 0 24 24">
+<path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9zm0 2c3.87 0 7 3.13 7 7 0 1.54-.5 2.97-1.35 4.14L12 19.53l-5.65-3.39C5.5 14.97 5 13.54 5 12c0-3.87 3.13-7 7-7z" fill="none"></path>
+<path d="M2 17h3v4H2zm5-4h3v8H7zm5-4h3v12h-3zm5-5h3v17h-3z"></path>
+</svg>
+<!-- Wifi Icon -->
+<svg class="w-4 h-4 fill-current" viewbox="0 0 24 24">
+<path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.2c3.8 0 7.27 1.45 9.9 3.86L12 18.25 2.1 11.06C4.73 8.65 8.2 7.2 12 7.2z"></path>
+</svg>
+<!-- Battery Icon -->
+<div class="w-6 h-3 border border-slate-700 rounded-sm p-[1.5px] flex items-center relative">
+<div class="w-3.5 h-full bg-slate-800 rounded-2xs"></div>
+<div class="absolute -right-1 w-0.5 h-1.5 bg-slate-700 rounded-r-xs"></div>
+</div>
+</div>
+</div>
+<!-- Navigation & Brand Sub-header -->
+<div class="flex items-center justify-between pt-1">
+<!-- Medicare Plus Wordmark Badge -->
+<div class="flex items-center space-x-2" data-purpose="brand-badge">
+<img alt="Medicare Plus Logo" class="w-7 h-7 object-contain drop-shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCL0irmlXChdRcCyuoWPCI96wsYsJfAYnMWVYc-qDg63ALTHrWdQqbBgbAnHJJ7SdMXYsRF_Fz0LrxykFiP6a46RV3b8c5wqKTk_Qb_rFF1HEGV7altJRm4bfW8EBGKWLpxUXYloWFan0uEW_dqTKdFk_0C9kWen3HV7tIcw2A2kK7vxbZ4d6Dumr0HpT5oip-wWYnpNJH9CaoS8Do0maQIlnNCLZIZG-87ILQmKZZV-vQCj7O22a5XXH0JuERF6b9xw"/>
+<div class="flex flex-col leading-none">
+<span class="text-[13px] font-extrabold tracking-wider uppercase text-slate-800">medicare</span>
+<span class="text-[11px] font-bold text-brand-red tracking-widest uppercase">plus inc.</span>
+</div>
+</div>
+<!-- Quick Skip Action -->
+<button aria-label="Skip to main screen" class="text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors uppercase tracking-wider py-1 px-2.5 rounded-full hover:bg-slate-100" type="button">
+          Skip
+        </button>
+</div>
+</header>
+<!-- END: TopBarSection -->
+<!-- BEGIN: CardShowcaseCenterpiece -->
+<section aria-label="ER Guard Card Showcase" class="relative z-10 flex-1 flex flex-col justify-center items-center px-5 py-2" data-purpose="digital-card-showcase"><div class="w-full max-w-[348px] relative h-[270px] flex items-center justify-center"><div class="w-full h-full rounded-[28px] overflow-hidden relative shadow-lg border border-slate-100/80 bg-[#F5F7FB]"><svg class="absolute inset-0 w-full h-full" preserveaspectratio="xMidYMid slice" viewbox="0 0 348 270"><rect fill="#F4F6FA" height="270" width="348"></rect><path d="M-20,40 C60,45 120,80 180,75 C240,70 290,110 370,100 L370,-10 L-20,-10 Z" fill="#EBF1F8"></path><path d="M220,-10 C240,40 280,70 370,90" fill="none" stroke="#E2E8F0" stroke-width="12"></path><path d="M-20,110 C80,105 140,150 200,165 C260,180 300,220 370,230" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="18"></path><path d="M-20,110 C80,105 140,150 200,165 C260,180 300,220 370,230" fill="none" stroke="#E2E8F0" stroke-linecap="round" stroke-width="10"></path><path d="M80,-10 L75,280" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="12"></path><path d="M80,-10 L75,280" fill="none" stroke="#E9EEF5" stroke-linecap="round" stroke-width="6"></path><path d="M260,-10 L250,280" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="10"></path><path d="M260,-10 L250,280" fill="none" stroke="#EDF2F7" stroke-linecap="round" stroke-width="5"></path><path d="M-20,195 Q140,180 370,205" fill="none" stroke="#FFFFFF" stroke-width="8"></path><path d="M-20,195 Q140,180 370,205" fill="none" stroke="#EDF2F7" stroke-width="4"></path><path d="M170,-10 C165,50 145,90 140,280" fill="none" stroke="#E2E8F0" stroke-dasharray="6 6" stroke-width="4"></path><circle cx="90" cy="80" fill="#D31320" fill-opacity="0.06" r="24"></circle><circle cx="270" cy="95" fill="#D31320" fill-opacity="0.05" r="20"></circle></svg><div class="absolute top-10 left-16 flex flex-col items-center select-none transform hover:scale-105 transition-transform duration-200"><div class="w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center border border-rose-100"><div class="w-5 h-5 rounded-full bg-gradient-to-br from-[#FF4C1E] to-brand-red flex items-center justify-center text-white shadow-xs"><svg class="w-3 h-3 fill-current" viewbox="0 0 24 24"><path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"></path></svg></div></div><div class="w-1.5 h-1 bg-black/15 rounded-full blur-[1px] mt-0.5"></div></div><div class="absolute top-12 right-12 flex flex-col items-center select-none transform hover:scale-105 transition-transform duration-200"><div class="w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center border border-rose-100"><div class="w-5 h-5 rounded-full bg-gradient-to-br from-[#FF4C1E] to-brand-red flex items-center justify-center text-white shadow-xs"><svg class="w-3 h-3 fill-current" viewbox="0 0 24 24"><path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"></path></svg></div></div><div class="w-1.5 h-1 bg-black/15 rounded-full blur-[1px] mt-0.5"></div></div><div class="absolute top-24 left-36 flex flex-col items-center select-none z-10"><div class="relative flex items-center justify-center"><span class="absolute w-12 h-12 bg-red-500/20 rounded-full animate-ping pointer-events-none"></span><span class="absolute w-11 h-11 bg-brand-red/15 rounded-full pointer-events-none"></span><div class="relative w-9 h-9 bg-white rounded-full shadow-lg flex items-center justify-center border-2 border-white ring-2 ring-brand-red/30"><div class="w-7 h-7 rounded-full bg-gradient-to-tr from-brand-red via-[#E62218] to-brand-orange flex items-center justify-center text-white shadow-sm"><svg class="w-4 h-4 fill-current" viewbox="0 0 24 24"><path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"></path></svg></div></div></div><div class="w-2.5 h-1 bg-black/20 rounded-full blur-[1px] mt-0.5"></div></div><div class="absolute top-3 left-3 flex items-center space-x-1 px-2.5 py-1 bg-white/90 backdrop-blur-md rounded-full shadow-xs border border-slate-200/60"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-[11px] font-bold text-slate-700 tracking-tight">ER Network Active</span></div><div class="absolute bottom-2.5 inset-x-2.5 bg-white/95 backdrop-blur-md rounded-[20px] p-3 shadow-md border border-slate-100/90 z-20"><div class="flex items-start justify-between mb-1.5"><div class="text-left pr-2"><h3 class="text-[14px] font-bold text-slate-900 leading-snug tracking-tight">St. Example Medical Center</h3><p class="text-[11px] text-slate-500 font-medium">24/7 Emergency Care Service</p></div><span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-red-50 text-brand-red border border-red-100 font-bold text-[10px] tracking-wide shrink-0"><svg class="w-3 h-3 fill-current" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" fill-rule="evenodd"></path></svg><span>Accredited</span></span></div><div class="flex items-center space-x-3 pt-1 border-t border-slate-100/80 text-[11.5px] font-semibold text-slate-600"><div class="flex items-center space-x-1"><svg class="w-3.5 h-3.5 text-brand-red fill-current" viewbox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"></path></svg><span>1.8 km away</span></div><span class="text-slate-300">•</span><div class="flex items-center space-x-1"><svg class="w-3.5 h-3.5 text-slate-400 fill-current" viewbox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"></path></svg><span>8 min drive</span></div></div></div></div></div></section>
+<!-- END: CardShowcaseCenterpiece -->
+<!-- BEGIN: BottomContentAndActions -->
+<footer class="relative z-20 px-6 pt-3 pb-8 flex flex-col items-center text-center" data-purpose="onboarding-footer">
+<!-- Copy Section -->
+<div class="mb-6 max-w-[320px]"><h1 class="text-[25px] sm:text-[26px] font-extrabold text-brand-dark tracking-tight leading-[1.2] mb-2.5">Find emergency care nearby.</h1><p class="text-brand-muted text-[15px] leading-relaxed font-medium px-1">Locate nearby emergency rooms and Medicare Plus accredited hospitals.</p></div>
+<!-- Pagination Indicator Dots -->
+<div aria-label="Onboarding step 2 of 3" class="flex items-center space-x-2 mb-6" role="tablist"><span class="w-2 h-2 bg-slate-200 rounded-full transition-all duration-300"></span><span aria-current="step" class="w-6 h-2 bg-brand-red rounded-full transition-all duration-300 shadow-sm"></span><span class="w-2 h-2 bg-slate-200 rounded-full transition-all duration-300"></span></div>
+<!-- Actions Stack -->
+<div class="w-full max-w-[340px] space-y-3">
+<!-- Primary Action Button: Next -->
+<button class="w-full h-[54px] rounded-full bg-gradient-to-r from-brand-red via-[#E62218] to-brand-orange text-white font-bold text-[16px] tracking-wide shadow-cta hover:brightness-105 active:scale-[0.985] transition-all flex items-center justify-center space-x-2 group" type="button">
+<span>Next</span>
+<svg class="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Secondary Action Link -->
+<button class="text-sm font-semibold text-slate-400 hover:text-slate-600 transition-colors py-1.5 focus:outline-none" type="button">
+          Skip
+        </button>
+</div>
+<!-- iOS Home Indicator Bar -->
+<div aria-hidden="true" class="w-32 h-1 bg-slate-300/80 rounded-full mt-4 -mb-3"></div>
+</footer>
+<!-- END: BottomContentAndActions -->
+</main>
+<!-- END: MobileContainer -->
+</body></html>
