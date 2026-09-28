@@ -11,3 +11,4 @@ android/app/build/
 .env
 .env.local
 .env.*.local
+mobile/modules/**/build/
