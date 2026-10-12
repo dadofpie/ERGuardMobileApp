@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
   Alert,
@@ -23,18 +23,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DateField } from '@/components/ui/date-field';
 import { spacing } from '@/constants/theme';
 import { MEDICAL_DISCLAIMER } from '@/constants/legal';
-import { api, type HospitalSearchResult } from '@/lib/api';
+import { api, isAmbiguousSubmitError, type HospitalSearchResult } from '@/lib/api';
+import { CLAIM_MAYBE_RECEIVED_MESSAGE } from '@/lib/api-errors';
+import { CLAIM_STATUS_META, isActiveClaimStatus, normalizeClaimStatus, type ClaimStatus } from '@/lib/claim-status';
+import * as Crypto from 'expo-crypto';
 import { formatHmInput, isValidHm, nowHm, withEmergencyTime } from '@/lib/emergency-loa';
 import { useClaimUpdates } from '@/lib/use-claim-updates';
-import { canFileClaim, cardlessClaimEmptyMessage, coverageWaitingDate } from '@/lib/capabilities';
+import { canFileClaim, cardlessClaimEmptyMessage, coverageWaitingDate, isEligibleClaimCard } from '@/lib/capabilities';
 import { getEmergencyLocation, type DeviceLocation } from '@/lib/location';
 import { useAppConfig } from '@/lib/use-app-config';
 import { formatVoucherShare } from '@/lib/voucher';
 import { useAuth } from '@/providers/auth-provider';
 import type { ClaimTicket } from '@/types/api';
 
-type ClaimStatus = 'in-review' | 'settled';
-type Filter = 'all' | ClaimStatus;
+type Filter = 'all' | 'in-review' | 'settled' | 'other';
 
 function localIso(daysAgo = 0) {
   const date = new Date();
@@ -113,7 +115,8 @@ function formatClaimAmount(n: unknown) {
 
 /** Map a real ticket row from the backend to the claim card shape. */
 function toUiClaim(t: ClaimTicket): Claim {
-  const inReview = asText(t?.status) !== 'settled';
+  const status = normalizeClaimStatus(t?.status);
+  const inReview = isActiveClaimStatus(status);
   return {
     id: asText(t?.id, '0'),
     ref: asText(t?.ref, 'Claim'),
@@ -130,10 +133,10 @@ function toUiClaim(t: ClaimTicket): Claim {
           : 'LOA Request',
     ),
     amount: formatClaimAmount(t?.amount),
-    status: inReview ? 'in-review' : 'settled',
-    icon: inReview ? 'medical-outline' : 'checkmark-circle',
-    iconColor: inReview ? '#A80013' : '#AC3400',
-    stepNote: 'Under review by the medical team',
+    status,
+    icon: inReview ? 'medical-outline' : status === 'settled' ? 'checkmark-circle' : 'close-circle-outline',
+    iconColor: inReview ? '#A80013' : status === 'settled' ? '#AC3400' : '#5D3F3C',
+    stepNote: status === 'on-hold' ? 'On hold. Our team may contact you for more information' : 'Under review by the medical team',
     payoutVia: 'Disbursement on approval',
     detail: asText(t?.detail) || undefined,
   };
@@ -142,7 +145,8 @@ function toUiClaim(t: ClaimTicket): Claim {
 /* ---------- claim card (code.html claim-card) ---------- */
 
 function ClaimCard({ claim, onVoucher }: { claim: Claim; onVoucher: () => void }) {
-  const inReview = claim.status === 'in-review';
+  const inReview = isActiveClaimStatus(claim.status);
+  const meta = CLAIM_STATUS_META[claim.status];
 
   const trackStatus = () =>
     Alert.alert(
@@ -164,15 +168,20 @@ function ClaimCard({ claim, onVoucher }: { claim: Claim; onVoucher: () => void }
             {claim.location ? <Text style={styles.claimLocation}>{claim.location}</Text> : null}
           </View>
         </View>
-        {inReview ? (
+        {claim.status === 'in-review' ? (
           <View style={styles.pillReview}>
             <View style={styles.pillDot} />
             <Text style={styles.pillReviewText}>In Review</Text>
           </View>
-        ) : (
+        ) : claim.status === 'settled' ? (
           <View style={styles.pillSettled}>
             <Ionicons color="#AC3400" name="checkmark-circle" size={14} />
             <Text style={styles.pillSettledText}>Settled / Paid</Text>
+          </View>
+        ) : (
+          <View style={[styles.pillSettled, { backgroundColor: meta.bg }]}>
+            <Ionicons color={meta.fg} name={meta.icon} size={14} />
+            <Text style={[styles.pillSettledText, { color: meta.fg }]}>{meta.label}</Text>
           </View>
         )}
       </View>
@@ -189,8 +198,8 @@ function ClaimCard({ claim, onVoucher }: { claim: Claim; onVoucher: () => void }
           </Text>
         </View>
         <View style={styles.detailFull}>
-          <Text style={styles.detailLabel}>{inReview ? 'Claimed Amount' : 'Reimbursed Amount'}</Text>
-          <Text style={[styles.detailAmount, !inReview && styles.detailAmountSettled]}>
+          <Text style={styles.detailLabel}>{claim.status === 'settled' ? 'Reimbursed Amount' : 'Claimed Amount'}</Text>
+          <Text style={[styles.detailAmount, claim.status === 'settled' && styles.detailAmountSettled]}>
             {claim.amount}
           </Text>
         </View>
@@ -230,14 +239,20 @@ function ClaimCard({ claim, onVoucher }: { claim: Claim; onVoucher: () => void }
 
       <View style={styles.claimFoot}>
         <Text style={styles.claimFootText}>
-          {inReview ? (claim.payoutVia ?? 'Disbursement on approval') : (claim.processed ?? 'Settled')}
+          {inReview
+            ? (claim.payoutVia ?? 'Disbursement on approval')
+            : claim.status === 'settled'
+              ? (claim.processed ?? 'Settled')
+              : claim.status === 'denied'
+                ? 'This claim was not approved'
+                : 'This claim was cancelled'}
         </Text>
         {inReview ? (
           <Pressable accessibilityRole="button" onPress={trackStatus} style={styles.trackBtn}>
             <Text style={styles.trackText}>Track Status</Text>
             <Ionicons color="#1B1B21" name="arrow-forward" size={15} />
           </Pressable>
-        ) : (
+        ) : claim.status === 'settled' ? (
           <Pressable
             accessibilityRole="button"
             onPress={onVoucher}
@@ -245,7 +260,12 @@ function ClaimCard({ claim, onVoucher }: { claim: Claim; onVoucher: () => void }
             <Text style={styles.trackText}>View Voucher</Text>
             <Ionicons color="#1B1B21" name="receipt-outline" size={15} />
           </Pressable>
-        )}
+        ) : claim.detail ? (
+          <Pressable accessibilityRole="button" onPress={trackStatus} style={styles.trackBtn}>
+            <Text style={styles.trackText}>Details</Text>
+            <Ionicons color="#1B1B21" name="arrow-forward" size={15} />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -271,6 +291,8 @@ export default function ClaimsScreen() {
   const [visitDate, setVisitDate] = useState(localIso());
   const [emergencyTime, setEmergencyTime] = useState(nowHm());
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const emergencySubmissionId = useRef(Crypto.randomUUID());
   // Stepped emergency LOA flow: 0 location → 1 hospital status → 2 facility
   // search/confirm → 3 complaint + datetime → 4 review + submit.
   const [step, setStep] = useState(0);
@@ -293,6 +315,7 @@ export default function ClaimsScreen() {
     queryFn: () => api.getClaims(token!),
     enabled: !!token && !isPreview,
     retry: false,
+    placeholderData: (previous) => previous,
   });
   // Live LOA status: the ticketing backend holds this request open and it
   // resolves when staff update one of this member's tickets — no polling.
@@ -304,6 +327,8 @@ export default function ClaimsScreen() {
     },
   });
 
+  const emergencyCard = (cardsQuery.data ?? []).find(isEligibleClaimCard);
+
   const dial = (raw?: string, fallback = '0288883748') =>
     Linking.openURL(`tel:${(raw || fallback).replace(/\s+/g, '')}`);
 
@@ -312,8 +337,14 @@ export default function ClaimsScreen() {
     const rows = Array.isArray(claimsQuery.data) ? claimsQuery.data : [];
     return rows.filter(Boolean).map(toUiClaim);
   }, [claimsQuery.data]);
-  const visible = claims.filter((c) => filter === 'all' || c.status === filter);
-  const inReviewCount = claims.filter((c) => c.status === 'in-review').length;
+  const visible = claims.filter((c) => {
+    if (filter === 'all') return true;
+    if (filter === 'in-review') return isActiveClaimStatus(c.status);
+    if (filter === 'other') return c.status === 'denied' || c.status === 'cancelled';
+    return c.status === filter;
+  });
+  const inReviewCount = claims.filter((c) => isActiveClaimStatus(c.status)).length;
+  const otherCount = claims.filter((c) => c.status === 'denied' || c.status === 'cancelled').length;
   const settledCount = claims.filter((c) => c.status === 'settled').length;
   const fileClaimAllowed = canFileClaim(account);
   const invoiceClaimsEnabled = configQuery.data?.feature_flags?.invoice_claims_enabled === true;
@@ -493,6 +524,8 @@ export default function ClaimsScreen() {
     // The ticketing contract only stores visit_date (YYYY-MM-DD); the time of
     // the emergency travels inside the complaint text for dispatch.
     const timedComplaint = withEmergencyTime(complaint, emergencyTime);
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     (async () => {
       try {
@@ -504,7 +537,10 @@ export default function ClaimsScreen() {
           location: locationLabel || undefined,
           location_label: locationLabel || undefined,
           chief_complaint: timedComplaint || undefined,
+          submission_id: emergencySubmissionId.current,
+          card_key: emergencyCard?.card_key,
         });
+        emergencySubmissionId.current = Crypto.randomUUID();
         setSheetOpen(false);
         setLocation(null);
         setLocationError(null);
@@ -520,8 +556,14 @@ export default function ClaimsScreen() {
         await claimsQuery.refetch();
         Alert.alert('LOA requested', `Emergency LOA ticket ${claim.ref} was sent to dispatch. Staff will assign a hospital.`);
       } catch (e) {
-        Alert.alert('Could not file claim', e instanceof Error ? e.message : 'Try again later');
+        if (isAmbiguousSubmitError(e)) {
+          void claimsQuery.refetch();
+          Alert.alert('Check your claims', CLAIM_MAYBE_RECEIVED_MESSAGE);
+        } else {
+          Alert.alert('Could not file claim', e instanceof Error ? e.message : 'Try again later');
+        }
       } finally {
+        submittingRef.current = false;
         setSubmitting(false);
       }
     })();
@@ -693,6 +735,7 @@ export default function ClaimsScreen() {
                 { key: 'all', label: `All (${claims.length})` },
                 { key: 'in-review', label: `In Review (${inReviewCount})` },
                 { key: 'settled', label: `Settled (${settledCount})` },
+                ...(otherCount > 0 ? [{ key: 'other' as Filter, label: `Closed (${otherCount})` }] : []),
               ] as { key: Filter; label: string }[]
             ).map((chip) => (
               <Pressable
@@ -709,15 +752,22 @@ export default function ClaimsScreen() {
           </View>
         </View>
 
+        {claimsQuery.isError ? (
+          <Text style={styles.emptySub}>Couldn't load your claims. Pull to refresh.</Text>
+        ) : null}
         {/* ---------- claim cards (real ticket history) ---------- */}
           </View>
         }
         ListEmptyComponent={
           <View style={styles.claimCard}>
             <Text style={styles.emptyTitle}>
-              {claimsQuery.isLoading ? 'Loading claims…' : 'No claims yet.'}
+              {claimsQuery.isLoading
+                ? 'Loading claims…'
+                : claimsQuery.isError
+                  ? "Couldn't load your claims. Pull to refresh."
+                  : 'No claims yet.'}
             </Text>
-            {!claimsQuery.isLoading ? (
+            {!claimsQuery.isLoading && !claimsQuery.isError ? (
               <Text style={styles.emptySub}>{cardlessClaimEmptyMessage(fileClaimAllowed, waitingLabel)}</Text>
             ) : null}
           </View>

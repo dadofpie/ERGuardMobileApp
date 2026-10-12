@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -17,9 +17,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DateField } from '@/components/ui/date-field';
 import { MEDICAL_DISCLAIMER } from '@/constants/legal';
-import { api } from '@/lib/api';
+import { api, isAmbiguousSubmitError, type HospitalSearchResult } from '@/lib/api';
+import { CLAIM_MAYBE_RECEIVED_MESSAGE } from '@/lib/api-errors';
 import { canFileClaim, isEligibleClaimCard } from '@/lib/capabilities';
-import { buildInvoiceClaimPayload, validateInvoiceClaim } from '@/lib/invoice-claim-payload';
+import {
+  buildInvoiceClaimPayload,
+  cardCoverageLimit,
+  validateInvoiceClaim,
+} from '@/lib/invoice-claim-payload';
 import { getEmergencyLocation, type DeviceLocation } from '@/lib/location';
 import { useAppConfig } from '@/lib/use-app-config';
 import {
@@ -59,7 +64,10 @@ export default function FileClaimScreen() {
   const [cardKey, setCardKey] = useState('');
   const selected = eligible.find((card) => card.card_key === cardKey) ?? eligible[0];
   const [files, setFiles] = useState<PickedFile[]>([]);
-  const [ocrStatus, setOcrStatus] = useState<OcrStatus>('unavailable');
+  const [ocrState, setOcrState] = useState<{ available: boolean; failed: boolean }>({
+    available: false,
+    failed: false,
+  });
   const [extracted, setExtracted] = useState<InvoiceExtracted>({});
   const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrSource, setOcrSource] = useState<'on-device' | 'Gemini'>('on-device');
@@ -71,6 +79,17 @@ export default function FileClaimScreen() {
   const [amount, setAmount] = useState('');
   const [visitDate, setVisitDate] = useState(todayIso());
   const [hospital, setHospital] = useState('');
+  const [hospitalFacilityId, setHospitalFacilityId] = useState<number | null>(null);
+  const [hospitalResults, setHospitalResults] = useState<HospitalSearchResult[]>([]);
+  const [hospitalSearching, setHospitalSearching] = useState(false);
+  const [procedures, setProcedures] = useState('');
+  const [doctor, setDoctor] = useState('');
+  const queryClient = useQueryClient();
+  const mountedRef = useRef(true);
+  const ocrSeqRef = useRef(0);
+  const submittingRef = useRef(false);
+  // Fields the member edited by hand; OCR must never overwrite them.
+  const touchedRef = useRef({ diagnosis: false, amount: false, visitDate: false, hospital: false });
   const [submissionId] = useState(() => Crypto.randomUUID());
   const [submitting, setSubmitting] = useState(false);
   const [claimLocation, setClaimLocation] = useState<DeviceLocation | null>(null);
@@ -113,8 +132,26 @@ export default function FileClaimScreen() {
   const memberName = selected?.member_name || `${account?.first_name ?? ''} ${account?.last_name ?? ''}`.trim();
   const product = selected?.er_guard_type || (selected?.artwork_type === 'plus' ? 'ER Guard Plus' : 'ER Guard');
 
+  // Derived so switching cards re-compares the name without re-running OCR.
+  const ocrStatus: OcrStatus = files.length
+    ? recognitionStatus({
+        available: ocrState.available,
+        failed: ocrState.failed,
+        registeredName: memberName,
+        detectedName: extracted.patient_name,
+      })
+    : 'unavailable';
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      ocrSeqRef.current += 1;
+    };
+  }, []);
+
   const resetOcr = () => {
-    setOcrStatus('unavailable');
+    setOcrState({ available: false, failed: false });
     setExtracted({});
     setAcknowledged(false);
   };
@@ -122,22 +159,22 @@ export default function FileClaimScreen() {
   const addImage = async (picked: PickedFile | null) => {
     if (!picked) return;
     const prepared = await prepareInvoiceImage(picked);
-    setFiles((current) => {
-      const next = [...current, prepared].slice(0, 4);
-      return next;
-    });
+    if (!mountedRef.current) return;
+    setFiles((current) => [...current, prepared].slice(0, 4));
     resetOcr();
   };
 
   const replaceImage = async (index: number, picked: PickedFile | null) => {
     if (!picked) return;
     const prepared = await prepareInvoiceImage(picked);
+    if (!mountedRef.current) return;
     setFiles((current) => current.map((file, i) => (i === index ? prepared : file)));
     resetOcr();
   };
 
-  const runOcr = async (uris: string[], images: PickedFile[]) => {
+  const runOcr = async (uris: string[], images: PickedFile[], seq: number) => {
     if (!images.length) return;
+    const stale = () => !mountedRef.current || seq !== ocrSeqRef.current;
     setOcrBusy(true);
     try {
       let local: InvoiceExtracted = {};
@@ -147,14 +184,18 @@ export default function FileClaimScreen() {
         available = native.isInvoiceOcrAvailable();
         if (available) {
           const chunks: string[] = [];
-          for (const file of images) chunks.push(await native.recognizeInvoice(file.uri));
+          for (const file of images) {
+            if (stale()) return;
+            chunks.push(await native.recognizeInvoice(file.uri));
+          }
           local = parseInvoiceText(chunks.join('\n'));
         }
       } catch {
         // The server reader can still extract fields when device OCR fails.
       }
+      if (stale()) return;
       let next = local;
-      setOcrSource('on-device');
+      let source: 'on-device' | 'Gemini' = 'on-device';
       if (token) {
         try {
           const filesKey = uris.join('|');
@@ -166,53 +207,93 @@ export default function FileClaimScreen() {
           }
           next = { ...local, ...aiExtracted };
           available = true;
-          setOcrSource('Gemini');
+          source = 'Gemini';
         } catch {
           // The claim remains usable with on-device OCR and manual review.
         }
       }
+      if (stale()) return;
+      setOcrSource(source);
       setExtracted(next);
-      setOcrStatus(recognitionStatus({
-        available,
-        registeredName: memberName,
-        detectedName: next.patient_name,
-      }));
-      if (next.diagnosis) {
+      setOcrState({ available, failed: false });
+      const touched = touchedRef.current;
+      if (next.diagnosis && !touched.diagnosis) {
         setDiagnosis(next.diagnosis);
         setDiagnosisMissing(false);
       }
-      if (next.amount != null) setAmount(String(next.amount.toFixed(2)));
-      if (next.visit_date) setVisitDate(next.visit_date);
-      if (next.hospital) setHospital(next.hospital);
+      if (next.amount != null && !touched.amount) setAmount(String(next.amount.toFixed(2)));
+      if (next.visit_date && !touched.visitDate) setVisitDate(next.visit_date);
+      if (next.hospital && !touched.hospital) {
+        setHospital(next.hospital);
+        setHospitalFacilityId(null);
+      }
     } catch {
-      setOcrStatus('failed');
+      if (stale()) return;
+      setOcrState({ available: true, failed: true });
       setExtracted({});
     } finally {
-      setOcrBusy(false);
+      if (!stale()) setOcrBusy(false);
     }
   };
 
+  // Re-run OCR only when the invoice files change (not on card switch).
   useEffect(() => {
+    ocrSeqRef.current += 1;
+    const seq = ocrSeqRef.current;
     if (!files.length) {
-      setOcrStatus('unavailable');
+      setOcrState({ available: false, failed: false });
       setExtracted({});
+      setOcrBusy(false);
       return;
     }
-    const uris = files.map((file) => file.uri);
-    runOcr(uris, files);
-    // Re-run when the selected card changes so a stale name match is discarded.
+    void runOcr(files.map((file) => file.uri), files, seq);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files, cardKey, memberName]);
+  }, [files]);
+
+  // Debounced hospital search against the server proxy (directory + Places).
+  useEffect(() => {
+    const query = hospital.trim();
+    if (query.length < 2 || hospitalFacilityId != null) {
+      setHospitalResults([]);
+      setHospitalSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setHospitalSearching(true);
+    const timer = setTimeout(() => {
+      api
+        .searchHospitals({
+          q: query,
+          lat: claimLocation?.latitude,
+          lng: claimLocation?.longitude,
+          limit: 6,
+        })
+        .then((results) => {
+          if (!cancelled) setHospitalResults(results);
+        })
+        .catch(() => {
+          if (!cancelled) setHospitalResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setHospitalSearching(false);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [hospital, hospitalFacilityId, claimLocation]);
+
+  const pickHospital = (result: HospitalSearchResult) => {
+    touchedRef.current.hospital = true;
+    setHospital(result.name);
+    const id = result.facility_id ?? (result.source === 'directory' ? result.id : null);
+    setHospitalFacilityId(typeof id === 'number' && id > 0 ? id : null);
+    setHospitalResults([]);
+  };
 
   const continueThenSubmit = () => {
     const uris = files.map((file) => file.uri);
-    if (!claimLocation) {
-      Alert.alert(
-        'Location needed',
-        'Turn on location so we can record where the visit happened.',
-      );
-      return;
-    }
     if (!selected) {
       Alert.alert('Eligible card required', 'Link an eligible ER Guard card before filing a claim.');
       return;
@@ -243,6 +324,7 @@ export default function FileClaimScreen() {
   };
 
   const submit = async (uris: string[], images: PickedFile[]) => {
+    if (submittingRef.current) return;
     if (!token || !canFileClaim(account) || !selected) {
       Alert.alert('Eligible card required', 'Link an eligible ER Guard card before filing a claim.');
       return;
@@ -256,6 +338,13 @@ export default function FileClaimScreen() {
       amount,
       visitDate,
       hospital,
+      hospitalFacilityId,
+      procedures,
+      doctor,
+      coverageLimit: cardCoverageLimit(selected),
+      cardEffectiveDate: selected.effective_date,
+      cardExpirationDate: selected.expiration_date,
+      location: claimLocation,
       ocrStatus,
       ocrModel: ocrSource === 'Gemini' ? 'gemini-3.1-flash-lite' : undefined,
       extracted,
@@ -266,16 +355,26 @@ export default function FileClaimScreen() {
       Alert.alert('Check claim details', error);
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const { claim } = await api.createInvoiceClaim(token, buildInvoiceClaimPayload(form), images);
+      void queryClient.invalidateQueries({ queryKey: ['claims'] });
       Alert.alert('Submitted for review', `Ticket ${claim.ref} was submitted for review.`, [
         { text: 'OK', onPress: () => router.replace('/(tabs)/claims') },
       ]);
     } catch (e) {
-      Alert.alert('Could not file claim', e instanceof Error ? e.message : 'Try again later');
+      if (isAmbiguousSubmitError(e)) {
+        void queryClient.invalidateQueries({ queryKey: ['claims'] });
+        Alert.alert('Check your claims', CLAIM_MAYBE_RECEIVED_MESSAGE, [
+          { text: 'View claims', onPress: () => router.replace('/(tabs)/claims') },
+        ]);
+      } else {
+        Alert.alert('Could not file claim', e instanceof Error ? e.message : 'Try again later');
+      }
     } finally {
-      setSubmitting(false);
+      submittingRef.current = false;
+      if (mountedRef.current) setSubmitting(false);
     }
   };
 
@@ -340,13 +439,13 @@ export default function FileClaimScreen() {
           <Text style={styles.help}>No eligible card is ready to file a claim yet.</Text>
         ) : null}
 
-        <Text style={styles.label}>Your location</Text>
+        <Text style={styles.label}>Your location (optional)</Text>
         <View style={styles.locRow}>
           <Ionicons color="#916F6B" name="navigate-outline" size={20} />
           <Text style={styles.locText}>
             {locating
               ? 'Getting your location…'
-              : claimLocation?.label || locationError || 'Location unavailable'}
+              : claimLocation?.label || locationError || 'Location unavailable — you can still submit'}
           </Text>
         </View>
         {locationError ? (
@@ -368,7 +467,7 @@ export default function FileClaimScreen() {
           style={styles.input}
           value={complaint}
         />
-        <DateField label="Admission date" onChange={setVisitDate} title="Admission date" value={visitDate} />
+        <DateField label="Admission date" onChange={(value) => { touchedRef.current.visitDate = true; setVisitDate(value); }} title="Admission date" value={visitDate} />
         <Text style={styles.label}>Invoice photos (1–4) — OCR reads them automatically</Text>
         <View style={styles.thumbs}>
           {files.map((file, index) => (
@@ -396,6 +495,7 @@ export default function FileClaimScreen() {
           editable={!diagnosisMissing}
           onChangeText={(value) => {
             recordActivity();
+            touchedRef.current.diagnosis = true;
             setDiagnosis(value);
           }}
           placeholder="Diagnosis on the invoice"
@@ -413,6 +513,7 @@ export default function FileClaimScreen() {
           keyboardType="decimal-pad"
           onChangeText={(value) => {
             recordActivity();
+            touchedRef.current.amount = true;
             setAmount(value);
           }}
           placeholder="0.00"
@@ -420,20 +521,65 @@ export default function FileClaimScreen() {
           style={styles.input}
           value={amount}
         />
-        <Text style={styles.label}>Hospital name (optional)</Text>
+        <Text style={styles.label}>Hospital</Text>
         <TextInput
           onChangeText={(value) => {
             recordActivity();
+            touchedRef.current.hospital = true;
             setHospital(value);
+            setHospitalFacilityId(null);
           }}
-          placeholder="Hospital printed on the invoice"
+          placeholder="Search or type the hospital name"
           placeholderTextColor="#916F6B"
           style={styles.input}
           value={hospital}
         />
+        {hospitalSearching ? <Text style={styles.help}>Searching…</Text> : null}
+        {hospitalResults.map((result, index) => (
+          <Pressable
+            key={`${result.place_id ?? result.name}-${index}`}
+            onPress={() => pickHospital(result)}
+            style={styles.cardChoice}>
+            <Text style={styles.cardName}>{result.name}</Text>
+            {result.address ? <Text style={styles.cardMeta}>{result.address}</Text> : null}
+          </Pressable>
+        ))}
+        <Text style={styles.help}>
+          {hospitalFacilityId != null
+            ? 'Accredited hospital selected.'
+            : hospital.trim().length >= 2
+              ? 'Not picked from the list: it will be filed as a non-accredited hospital.'
+              : ''}
+        </Text>
+        <Text style={styles.label}>Procedures</Text>
+        <TextInput
+          maxLength={2000}
+          multiline
+          onChangeText={(value) => {
+            recordActivity();
+            setProcedures(value);
+          }}
+          placeholder="Procedures done during the visit"
+          placeholderTextColor="#916F6B"
+          style={[styles.input, styles.textArea]}
+          textAlignVertical="top"
+          value={procedures}
+        />
+        <Text style={styles.label}>Doctor (optional)</Text>
+        <TextInput
+          maxLength={200}
+          onChangeText={(value) => {
+            recordActivity();
+            setDoctor(value);
+          }}
+          placeholder="Attending doctor"
+          placeholderTextColor="#916F6B"
+          style={styles.input}
+          value={doctor}
+        />
         <Text style={styles.disclaimer}>{MEDICAL_DISCLAIMER}</Text>
         <Pressable
-          disabled={submitting || ocrBusy || !claimLocation}
+          disabled={submitting || ocrBusy}
           onPress={() => continueThenSubmit()}
           style={styles.outlineBtn}>
           <Text style={styles.outlineBtnText}>
@@ -499,6 +645,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addThumbText: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 11, color: '#A80013' },
+  textArea: { minHeight: 96, paddingTop: 12 },
   previewRow: { flexGrow: 0 },
   preview: { width: 96, height: 96, borderRadius: 8, marginRight: 8 },
   input: {

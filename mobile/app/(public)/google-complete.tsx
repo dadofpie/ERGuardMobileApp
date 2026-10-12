@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { TextField } from '@/components/ui/text-field';
 import { colors, spacing } from '@/constants/theme';
+import { api } from '@/lib/api';
+import { buildAppleCompleteExtras, validateAppleEmailStep } from '@/lib/apple-profile';
 import { asApiError, isExistingAccountError, promptExistingAccount } from '@/lib/auth-errors';
 import { clearGoogleFlow, getGoogleFlow } from '@/lib/auth-flow-store';
 import { offerBiometricSetup } from '@/lib/biometrics';
@@ -32,6 +34,11 @@ export default function GoogleCompleteScreen() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [privacy, setPrivacy] = useState(false);
   const [terms, setTerms] = useState(false);
+  const needsEmail = isApple && pending?.emailVerificationRequired === true;
+  const [email, setEmail] = useState(pending?.email ?? '');
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +60,32 @@ export default function GoogleCompleteScreen() {
     );
   }
 
+  const sendCode = async () => {
+    const problem = validateAppleEmailStep(email, '000000');
+    if (problem && /email/.test(problem)) {
+      setError(problem);
+      return;
+    }
+    setSending(true);
+    setError(null);
+    try {
+      await api.requestCode(email.trim());
+      setCodeSent(true);
+    } catch (e) {
+      setError(asApiError(e).message || 'Could not send the code');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const submit = async () => {
+    if (needsEmail) {
+      const problem = validateAppleEmailStep(email, code);
+      if (problem) {
+        setError(problem);
+        return;
+      }
+    }
     const mobileDigits = mobileNumber.replace(/\D+/g, '');
     if (!firstName.trim() || !lastName.trim() || !birthday) {
       setError('Please complete first name, last name, and birthday.');
@@ -72,6 +104,7 @@ export default function GoogleCompleteScreen() {
     try {
       await (isApple ? completeAppleSignUp : completeGoogleSignUp)({
         id_token: pending.idToken,
+        ...buildAppleCompleteExtras({ verificationRequired: needsEmail, email, code }),
         first_name: firstName.trim(),
         middle_name: noMiddleName ? undefined : middleName.trim() || undefined,
         last_name: lastName.trim(),
@@ -107,10 +140,39 @@ export default function GoogleCompleteScreen() {
       keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Almost done</Text>
       <Text style={styles.subtitle}>
-        {pending.email ? `Signed in with ${isApple ? 'Apple' : 'Google'} as ${pending.email}. ` : ''}Tell us a little more to
+        {pending.email && !needsEmail ? `Signed in with ${isApple ? 'Apple' : 'Google'} as ${pending.email}. ` : ''}Tell us a little more to
         finish creating your ER Guard account.
       </Text>
       <View style={styles.card}>
+        {needsEmail ? (
+          <>
+            <TextField
+              autoCapitalize="none"
+              keyboardType="email-address"
+              label="Email"
+              onChangeText={(v) => {
+                setEmail(v);
+                setCodeSent(false);
+              }}
+              value={email}
+            />
+            <Button
+              label={codeSent ? 'Resend verification code' : 'Send verification code'}
+              loading={sending}
+              onPress={sendCode}
+              variant="secondary"
+            />
+            {codeSent ? (
+              <TextField
+                keyboardType="number-pad"
+                label="6-digit code"
+                maxLength={6}
+                onChangeText={setCode}
+                value={code}
+              />
+            ) : null}
+          </>
+        ) : null}
         <TextField label="First name" onChangeText={setFirstName} value={firstName} />
         <TextField
           editable={!noMiddleName}

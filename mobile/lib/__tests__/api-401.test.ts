@@ -58,13 +58,13 @@ describe('api 401 handling', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it('does not sign the user out when listing claims returns 401', async () => {
+  it('signs the user out when listing claims returns 401', async () => {
     const handler = jest.fn();
     setUnauthorizedHandler(handler);
     mockFetchOnce(401, { ok: false, error: 'Unauthorized' });
 
-    await expect(api.getClaims('token')).resolves.toEqual([]);
-    expect(handler).not.toHaveBeenCalled();
+    await expect(api.getClaims('token')).rejects.toThrow('Unauthorized');
+    expect(handler).toHaveBeenCalledTimes(1);
   });
 
   it('debounces a burst of 401s into a single handler call and re-arms after 5s', async () => {

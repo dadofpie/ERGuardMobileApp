@@ -278,6 +278,7 @@ export default function SignInScreen() {
                     email: outcome.email,
                     firstName: outcome.firstName ?? apple.firstName,
                     lastName: outcome.lastName ?? apple.lastName,
+                    emailVerificationRequired: outcome.emailVerificationRequired,
                   });
                   router.push({
                     pathname: '/(public)/google-complete',

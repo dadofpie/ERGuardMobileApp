@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   FlatList,
   Modal,
   Pressable,
@@ -19,10 +20,16 @@ import { TextField } from '@/components/ui/text-field';
 import { CardArt } from '@/components/home/card-art';
 import { PURCHASE_ENABLED } from '@/constants/flags';
 import { colors, radii, spacing } from '@/constants/theme';
+import { hostOf, isAllowedActivationUrl } from '@/lib/activation';
 import { api } from '@/lib/api';
+import { authenticateWithBiometrics } from '@/lib/biometrics';
+import { isBiometricEnabled } from '@/lib/storage';
+import { useAppConfig } from '@/lib/use-app-config';
 import { cardArtSource } from '@/lib/card-designs';
 import { useAuth } from '@/providers/auth-provider';
 import type { ErGuardCard } from '@/types/api';
+
+const REVEAL_TIMEOUT_MS = 30_000;
 
 function formatPan(raw: string) {
   const digits = raw.replace(/\D/g, '');
@@ -47,6 +54,28 @@ export default function CardsScreen() {
     {},
   );
   const [busy, setBusy] = useState(false);
+  const configQuery = useAppConfig();
+  const revealTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+
+  const hideAllRevealed = useCallback(() => {
+    Object.values(revealTimers.current).forEach(clearTimeout);
+    revealTimers.current = {};
+    setRevealed({});
+  }, []);
+
+  // Hide full card numbers when the app backgrounds, the user signs out, or the screen unmounts.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') hideAllRevealed();
+    });
+    return () => {
+      sub.remove();
+      hideAllRevealed();
+    };
+  }, [hideAllRevealed]);
+  useEffect(() => {
+    if (!token) hideAllRevealed();
+  }, [token, hideAllRevealed]);
 
   const cardsQuery = useQuery({
     queryKey: ['cards', token],
@@ -58,6 +87,11 @@ export default function CardsScreen() {
     if (!token || isPreview) return;
     try {
       const { activation_url } = await api.activationLink(token, card.activation_id);
+      const shopHost = hostOf(configQuery.data?.hosted_shop_url);
+      if (!isAllowedActivationUrl(activation_url, [shopHost])) {
+        Alert.alert('Activation link failed', 'The activation link is not from a trusted address. Please contact support.');
+        return;
+      }
       await WebBrowser.openBrowserAsync(activation_url);
       cardsQuery.refetch();
       await refreshAccount();
@@ -106,6 +140,8 @@ export default function CardsScreen() {
 
   const toggleReveal = async (card: ErGuardCard) => {
     if (revealed[card.activation_id]) {
+      clearTimeout(revealTimers.current[card.activation_id]);
+      delete revealTimers.current[card.activation_id];
       setRevealed((p) => {
         const next = { ...p };
         delete next[card.activation_id];
@@ -115,8 +151,21 @@ export default function CardsScreen() {
     }
     if (!token || isPreview) return;
     try {
+      if (await isBiometricEnabled().catch(() => false)) {
+        const ok = await authenticateWithBiometrics('Verify it is you to reveal your card number');
+        if (!ok) return;
+      }
       const full = await api.revealCard(token, card.activation_id);
       setRevealed((p) => ({ ...p, [card.activation_id]: formatPan(full.card_number) }));
+      clearTimeout(revealTimers.current[card.activation_id]);
+      revealTimers.current[card.activation_id] = setTimeout(() => {
+        delete revealTimers.current[card.activation_id];
+        setRevealed((p) => {
+          const next = { ...p };
+          delete next[card.activation_id];
+          return next;
+        });
+      }, REVEAL_TIMEOUT_MS);
     } catch (e) {
       Alert.alert('Could not reveal card', e instanceof Error ? e.message : 'Try again');
     }

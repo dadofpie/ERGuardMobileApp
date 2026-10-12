@@ -6,9 +6,11 @@ import {
   View,
   type AppStateStatus,
 } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 
 import { api, setUnauthorizedHandler } from '@/lib/api';
+import { appleNeedsEmailVerification } from '@/lib/apple-profile';
 import { clearAllAuthFlows } from '@/lib/auth-flow-store';
 import { authenticateWithBiometrics } from '@/lib/biometrics';
 import {
@@ -52,7 +54,10 @@ type AuthContextValue = {
   completeGoogleSignUp: (payload: Record<string, unknown>) => Promise<void>;
   signInWithApple: (
     result: { identityToken: string; email?: string },
-  ) => Promise<{ needsProfile: true; email: string; firstName?: string; lastName?: string } | { needsProfile: false }>;
+  ) => Promise<
+    | { needsProfile: true; email: string; firstName?: string; lastName?: string; emailVerificationRequired?: boolean }
+    | { needsProfile: false }
+  >;
   completeAppleSignUp: (payload: Record<string, unknown>) => Promise<void>;
   signOut: () => Promise<void>;
   refreshAccount: () => Promise<void>;
@@ -82,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const queryClient = useQueryClient();
 
   const unlockingRef = useRef(false);
   const expiringRef = useRef(false);
@@ -113,9 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setAccount(null);
     setSessionExpired(true);
+    queryClient.clear();
     router.replace('/(public)/sign-in');
     expiringRef.current = false;
-  }, []);
+  }, [queryClient]);
 
   const scheduleInactivityTimeout = useCallback(() => {
     if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
@@ -430,6 +437,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: res.email,
           firstName: res.first_name,
           lastName: res.last_name,
+          emailVerificationRequired: appleNeedsEmailVerification(res),
         };
       }
       if ('account' in res && 'session' in res) {
@@ -487,8 +495,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSessionExpired(false);
       setToken(null);
       setAccount(null);
+      queryClient.clear();
     }
-  }, [token]);
+  }, [token, queryClient]);
 
   /**
    * Global 401 handling (SEC-009): any authenticated call that comes back
@@ -515,12 +524,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSessionExpired(false);
           setToken(null);
           setAccount(null);
+          queryClient.clear();
           Alert.alert('Session expired', 'Please sign in again to continue.');
           router.replace('/(public)/sign-in');
         });
     });
     return () => setUnauthorizedHandler(null);
-  }, []);
+  }, [queryClient]);
 
   const refreshAccount = useCallback(async () => {
     if (!token || token === PREVIEW_TOKEN) return;

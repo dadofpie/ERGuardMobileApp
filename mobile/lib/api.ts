@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { serializeLoginPayload } from '@/lib/auth-payload';
+import { friendlyMessage, parseRetryAfter } from '@/lib/api-errors';
 import { visibleErGuardCards } from '@/lib/capabilities';
 import type { Account, AppConfig, ClaimTicket, ClaimVoucher, ErGuardCard, Facility, Session } from '@/types/api';
 
@@ -32,7 +33,7 @@ function resolveBaseUrl(): string {
 
 const BASE = resolveBaseUrl();
 
-type ApiError = Error & { status?: number; field?: string; code?: string };
+type ApiError = Error & { status?: number; field?: string; code?: string; retryAfter?: number };
 
 /**
  * SEC-009: a single global hook for expired/revoked sessions. The auth
@@ -80,6 +81,45 @@ function timeoutError(path: string): ApiError {
   return err;
 }
 
+
+async function readBody(res: Response): Promise<{ data: any; nonJson: boolean }> {
+  try {
+    return { data: await res.json(), nonJson: false };
+  } catch {
+    return { data: {}, nonJson: true };
+  }
+}
+
+function buildApiError(res: Response, data: any, nonJson: boolean): ApiError {
+  const raw =
+    typeof data?.error === 'string'
+      ? data.error
+      : typeof data?.error?.message === 'string'
+        ? data.error.message
+        : typeof data?.message === 'string'
+          ? data.message
+          : undefined;
+  const code = typeof data?.code === 'string' ? data.code : typeof data?.error?.code === 'string' ? data.error.code : undefined;
+  const retryAfter = parseRetryAfter(res.headers?.get?.('Retry-After'));
+  const err: ApiError = new Error(friendlyMessage(res.status, code, raw, retryAfter, nonJson));
+  err.status = res.status;
+  if (typeof data?.field === 'string') err.field = data.field;
+  if (code) err.code = code;
+  if (retryAfter != null) err.retryAfter = retryAfter;
+  return err;
+}
+
+function markNetworkError(e: unknown) {
+  if (e instanceof TypeError && !(e as ApiError).code) (e as ApiError).code = 'network';
+}
+
+/** Timeout or dropped connection: the server may still have processed a POST. */
+export function isAmbiguousSubmitError(e: unknown): boolean {
+  if (isTimeoutError(e)) return true;
+  const err = e as ApiError | undefined;
+  return !!err && err.status == null && (err.code === 'timeout' || err.code === 'network');
+}
+
 /**
  * CONN-003: every network call carries an endpoint-appropriate timeout so a
  * stalled connection can never leave login, signup, purchase, or claim UI
@@ -87,6 +127,7 @@ function timeoutError(path: string): ApiError {
  * never retried automatically (purchases/claims use server idempotency keys).
  */
 const DEFAULT_TIMEOUT_MS = 20_000;
+const POLL_CLIENT_TIMEOUT_MS = 30_000;
 
 async function request<T>(
   path: string,
@@ -109,26 +150,16 @@ async function request<T>(
       headers,
       signal: controller.signal,
     });
-    const data = await res.json().catch(() => ({}));
+    const { data, nonJson } = await readBody(res);
     if (!res.ok || data.ok === false) {
-      const message =
-        typeof data?.error === 'string'
-          ? data.error
-          : typeof data?.error?.message === 'string'
-            ? data.error.message
-            : typeof data?.message === 'string'
-              ? data.message
-              : `Request failed (${res.status})`;
-      const err: ApiError = new Error(message);
-      err.status = res.status;
-      if (typeof data?.field === 'string') err.field = data.field;
-      if (typeof data?.code === 'string') err.code = data.code;
+      const err = buildApiError(res, data, nonJson);
       if (sessionFatal) handleUnauthorized(path, err);
       throw err;
     }
     return data as T;
   } catch (e) {
     if (isTimeoutError(e)) throw timeoutError(path);
+    markNetworkError(e);
     throw e;
   } finally {
     clearTimeout(timer);
@@ -158,26 +189,16 @@ async function uploadForm<T>(
       body: form,
       signal: controller.signal,
     });
-    const data = await res.json().catch(() => ({}));
+    const { data, nonJson } = await readBody(res);
     if (!res.ok || data.ok === false) {
-      const message =
-        typeof data?.error === 'string'
-          ? data.error
-          : typeof data?.error?.message === 'string'
-            ? data.error.message
-            : typeof data?.message === 'string'
-              ? data.message
-              : `Request failed (${res.status})`;
-      const err: ApiError = new Error(message);
-      err.status = res.status;
-      if (typeof data?.field === 'string') err.field = data.field;
-      if (typeof data?.code === 'string') err.code = data.code;
+      const err = buildApiError(res, data, nonJson);
       handleUnauthorized(path, err);
       throw err;
     }
     return data as T;
   } catch (e) {
     if (isTimeoutError(e)) throw timeoutError(path);
+    markNetworkError(e);
     throw e;
   } finally {
     clearTimeout(timer);
@@ -200,6 +221,9 @@ export type HospitalSearchResult = {
   latitude?: number | null;
   longitude?: number | null;
   distance_km?: number | null;
+  /** Accredited-directory facility id (directory results only). */
+  facility_id?: number | null;
+  id?: number | null;
 };
 
 export const api = {
@@ -250,7 +274,7 @@ export const api = {
   appleAuth: (body: { id_token: string; email?: string; device_name?: string }) =>
     request<
       | { ok: true; account: Account; session: Session }
-      | { ok: true; needs_profile: true; email: string; first_name?: string; last_name?: string }
+      | { ok: true; needs_profile: true; email: string; email_verification_required?: boolean; first_name?: string; last_name?: string }
     >('/api/patient/er-guard/auth/apple', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -347,12 +371,8 @@ export const api = {
       {
         token,
         timeoutMs: READ_TIMEOUT_MS,
-        // A missing/mis-gated claims route must not wipe a still-valid login.
-        sessionFatal: false,
       },
-    )
-      .then((r) => (Array.isArray(r.claims) ? r.claims : []))
-      .catch(() => []);
+    ).then((r) => (Array.isArray(r.claims) ? r.claims : []));
   },
 
   createClaim: (
@@ -366,6 +386,8 @@ export const api = {
       location?: string;
       location_label?: string;
       chief_complaint?: string;
+      submission_id?: string;
+      card_key?: string;
     },
   ) =>
     request<{ ok: true; claim: ClaimTicket }>('/api/patient/er-guard/claims', {
@@ -404,25 +426,6 @@ export const api = {
       `/api/patient/er-guard/claims/${ticketId}`,
       { token, timeoutMs: READ_TIMEOUT_MS, sessionFatal: false },
     ).then((r) => r.claim),
-
-  getClaimAttachment: (token: string, ticketId: number, messageId: number) =>
-    fetch(`${BASE}/api/patient/er-guard/claims/${ticketId}/attachments/${messageId}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: '*/*' },
-    }),
-
-  uploadClaimAttachments: (
-    token: string,
-    ticketId: number,
-    files: { uri: string; name: string; mime: string }[],
-  ) => {
-    const form = new FormData();
-    files.forEach((file) => appendFile(form, 'files', file));
-    return uploadForm<{ ok: true; claim: ClaimTicket; uploaded: number }>(
-      `/api/patient/er-guard/claims/${ticketId}/attachments`,
-      token,
-      form,
-    );
-  },
 
   getClaimVoucher: (token: string, ticketId: number) =>
     request<{ ok: true; voucher: ClaimVoucher }>(
@@ -498,20 +501,38 @@ export const api = {
   /**
    * Long-poll for ticket changes (server push, not polling).
    * Resolves with the changed ticket ids when ticketing staff update one of
-   * this member's tickets, or [] on timeout. Uses raw fetch so the caller
-   * owns the AbortSignal; the server bounds the hold (≤50s).
+   * this member's tickets, or [] on timeout. The caller owns `signal`; a
+   * client-side timeout (server holds <= 20s) guards stalled sockets.
+   * 401 goes through the global handler; 429 surfaces `retryAfter`.
    */
   pollClaimUpdates: async (token: string, timeoutSeconds: number, signal?: AbortSignal) => {
-    const res = await fetch(
-      `${BASE}/api/patient/er-guard/claims/updates?timeout=${Math.max(1, Math.min(timeoutSeconds, 50))}`,
-      { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, signal },
-    );
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.ok === false) {
-      const message = typeof data?.error === 'string' ? data.error : `Request failed (${res.status})`;
-      throw new Error(message);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), POLL_CLIENT_TIMEOUT_MS);
+    const onAbort = () => controller.abort();
+    if (signal?.aborted) controller.abort();
+    else signal?.addEventListener('abort', onAbort);
+    const path = `/api/patient/er-guard/claims/updates?timeout=${Math.max(1, Math.min(timeoutSeconds, 20))}`;
+    try {
+      const res = await fetch(`${BASE}${path}`, {
+        headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
+      const { data, nonJson } = await readBody(res);
+      if (!res.ok || data.ok === false) {
+        const err = buildApiError(res, data, nonJson);
+        handleUnauthorized(path, err);
+        throw err;
+      }
+      return (Array.isArray(data.changed) ? data.changed : []) as number[];
+    } catch (e) {
+      if (signal?.aborted) throw e;
+      if (isTimeoutError(e)) return [] as number[]; // stalled socket: just re-poll
+      markNetworkError(e);
+      throw e;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
     }
-    return (Array.isArray(data.changed) ? data.changed : []) as number[];
   },
 
   deleteAccount: (token: string) =>

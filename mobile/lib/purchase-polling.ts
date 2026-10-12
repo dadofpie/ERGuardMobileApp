@@ -14,9 +14,19 @@ export function purchaseStatus(purchase: Record<string, unknown>): string {
 
 export function isPurchasePaid(purchase: Record<string, unknown>): boolean {
   const status = purchaseStatus(purchase);
-  return ['paid', 'completed', 'success', 'succeeded', 'confirmed', 'processing'].includes(
-    status,
-  );
+  return ['paid', 'succeeded', 'completed'].includes(status);
+}
+
+export function isPurchaseProcessing(purchase: Record<string, unknown>): boolean {
+  return ['processing', 'pending'].includes(purchaseStatus(purchase));
+}
+
+/** Purchase ids from deep links / query params must be positive integers. */
+export function parsePurchaseId(raw: unknown): number | null {
+  if (typeof raw !== 'string' && typeof raw !== 'number') return null;
+  if (typeof raw === 'string' && !/^\d+$/.test(raw.trim())) return null;
+  const id = Number(raw);
+  return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 export function isPurchaseFailed(purchase: Record<string, unknown>): boolean {
@@ -43,10 +53,13 @@ export async function pollPurchaseUntilSettled(
   token: string,
   purchaseId: number,
   refreshAccount: () => Promise<void>,
-): Promise<'paid' | 'failed' | 'pending'> {
+  signal?: AbortSignal,
+): Promise<'paid' | 'failed' | 'pending' | 'cancelled'> {
   for (let attempt = 0; attempt < PURCHASE_POLL_MAX_ATTEMPTS; attempt += 1) {
+    if (signal?.aborted) return 'cancelled';
     try {
       const { purchase } = await api.getPurchase(token, purchaseId);
+      if (signal?.aborted) return 'cancelled';
       if (isPurchasePaid(purchase)) {
         await refreshAccount();
         Alert.alert('Purchase confirmed', successMessage(purchase), [
@@ -66,7 +79,8 @@ export async function pollPurchaseUntilSettled(
     }
     await new Promise((resolve) => setTimeout(resolve, PURCHASE_POLL_MS));
   }
-  await refreshAccount();
+  if (signal?.aborted) return 'cancelled';
+  await refreshAccount().catch(() => undefined);
   Alert.alert(
     'Payment processing',
     'We are still confirming your payment. Your card will appear in your wallet once it clears.',

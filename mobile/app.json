@@ -122,6 +122,11 @@
               "scheme": "https",
               "host": "api.app.medicareplus.com.ph",
               "pathPrefix": "/erguard/checkout"
+            },
+            {
+              "scheme": "https",
+              "host": "api.app.medicareplus.com.ph",
+              "pathPrefix": "/erguard/activation"
             }
           ],
           "category": [

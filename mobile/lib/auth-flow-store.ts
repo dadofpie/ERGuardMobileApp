@@ -27,6 +27,8 @@ export type PendingGoogle = {
   email?: string;
   firstName?: string;
   lastName?: string;
+  /** Apple returned no verified email: collect it and verify by OTP. */
+  emailVerificationRequired?: boolean;
 };
 
 const FLOW_TTL_MS = 10 * 60 * 1000;

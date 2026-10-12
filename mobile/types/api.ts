@@ -104,7 +104,7 @@ export type ClaimTicket = {
   date: string | null;
   coverage: string;
   amount: number | null;
-  status: 'in-review' | 'settled';
+  status: 'in-review' | 'settled' | 'denied' | 'cancelled' | 'on-hold';
   detail?: string | null;
   attachment_count?: number;
   loa_type?: string | null;
