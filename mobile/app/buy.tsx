@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
+import * as Crypto from 'expo-crypto';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -13,7 +15,13 @@ import { PURCHASE_ENABLED } from '@/constants/flags';
 import { colors, radii, spacing } from '@/constants/theme';
 import { api } from '@/lib/api';
 import { chargeCentavos, formatPeso, isTestCharge, listPriceCentavos } from '@/lib/pricing';
-import { pollPurchaseUntilSettled } from '@/lib/purchase-polling';
+import { queryKeys } from '@/lib/query-keys';
+import {
+  PURCHASE_FAILED_MESSAGE,
+  parsePurchaseId,
+  pollPurchaseUntilSettled,
+  purchaseSuccessMessage,
+} from '@/lib/purchase-polling';
 import { useAppConfig } from '@/lib/use-app-config';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -61,14 +69,38 @@ const WHY_ROWS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: str
 export default function BuyScreen() {
   const insets = useSafeAreaInsets();
   const { token, isPreview, refreshAccount } = useAuth();
+  const queryClient = useQueryClient();
   const configQuery = useAppConfig();
   const config = configQuery.data;
   const [selected, setSelected] = useState<PlanId>('er_guard_plus');
   const [busy, setBusy] = useState(false);
+  const [pendingId, setPendingId] = useState<number | null>(null);
   // Deep-link return: erguard://checkout?purchase_id=123 (or ?purchase=123)
   const params = useLocalSearchParams<{ purchase_id?: string; purchase?: string }>();
   const handledReturnRef = useRef(false);
   const pollingRef = useRef(false);
+  const pollAbortRef = useRef<AbortController | null>(null);
+  const createdPurchaseIdRef = useRef<number | null>(null);
+  /**
+   * SEC-007 / LOGIC: one stable reference per checkout intent. It is reused for
+   * every retry of this intent so a timeout + retry cannot create a second
+   * purchase, and only rotates after the purchase settles or the plan changes.
+   */
+  const purchaseReferenceRef = useRef(Crypto.randomUUID());
+
+  useEffect(() => {
+    // A different plan is a different intent: new idempotency key.
+    purchaseReferenceRef.current = Crypto.randomUUID();
+    createdPurchaseIdRef.current = null;
+    setPendingId(null);
+  }, [selected]);
+
+  useEffect(
+    () => () => {
+      pollAbortRef.current?.abort();
+    },
+    [],
+  );
 
   const isPlus = selected === 'er_guard_plus';
   const plusList = listPriceCentavos(config, 'er_guard_plus');
@@ -82,21 +114,48 @@ export default function BuyScreen() {
   const pollPurchase = async (purchaseId: number) => {
     if (!token || isPreview || pollingRef.current) return;
     pollingRef.current = true;
+    const controller = new AbortController();
+    pollAbortRef.current = controller;
+    setPendingId(null);
     try {
-      await pollPurchaseUntilSettled(token, purchaseId, refreshAccount);
+      const result = await pollPurchaseUntilSettled(token, purchaseId, controller.signal);
+      if (controller.signal.aborted) return;
+      if (result.status === 'paid') {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.cardsAll });
+        void refreshAccount().catch(() => undefined);
+        purchaseReferenceRef.current = Crypto.randomUUID();
+        Alert.alert(
+          'Purchase confirmed',
+          purchaseSuccessMessage(result.purchase ?? {}),
+          [{ text: 'View cards', onPress: () => router.replace('/(tabs)/cards') }],
+        );
+      } else if (result.status === 'failed') {
+        purchaseReferenceRef.current = Crypto.randomUUID();
+        Alert.alert('Payment not completed', PURCHASE_FAILED_MESSAGE);
+      } else if (result.status === 'pending') {
+        // Not an error: the bank may still be confirming. Keep the screen
+        // resumable instead of dead-ending the member.
+        setPendingId(purchaseId);
+      }
     } finally {
+      if (pollAbortRef.current === controller) pollAbortRef.current = null;
       pollingRef.current = false;
     }
   };
 
   // Handle the hosted-checkout deep-link return (erguard://checkout?...).
+  // SEC-007/LOGIC: the id must be a positive integer, never whatever a link
+  // happens to contain. Signed-out and preview returns are ignored.
   useEffect(() => {
     if (handledReturnRef.current) return;
     const rawId = params.purchase_id ?? params.purchase;
     if (!rawId) return;
+    const id = parsePurchaseId(Array.isArray(rawId) ? rawId[0] : rawId);
+    // An unusable id is ignored without consuming the one-shot guard, so a
+    // later valid return still works.
+    if (id == null) return;
     handledReturnRef.current = true;
-    const id = Number(rawId);
-    if (Number.isFinite(id) && token && !isPreview) {
+    if (token && !isPreview) {
       void pollPurchase(id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,16 +177,28 @@ export default function BuyScreen() {
       Alert.alert('Preview mode', 'Purchases are disabled for the development preview account.');
       return;
     }
+    if (config?.feature_flags?.purchase_enabled === false) {
+      Alert.alert('Purchasing paused', 'Card purchases are temporarily disabled. Please try again later.');
+      return;
+    }
     setBusy(true);
     try {
       const { purchase } = await api.createPurchase(token, {
         product_code: selected,
         app_return_uri: 'erguard://checkout',
+        purchase_reference: purchaseReferenceRef.current,
       });
+      createdPurchaseIdRef.current = purchase.purchase_id ?? null;
       await refreshAccount();
       if (purchase.checkout_url) {
         await WebBrowser.openBrowserAsync(purchase.checkout_url);
         await refreshAccount();
+        // Recovery path (LOGIC-03): if the hosted page never bounced back
+        // through the deep link, poll the purchase we just created. A deep-link
+        // return wins because it sets handledReturnRef before this runs.
+        if (createdPurchaseIdRef.current != null && !handledReturnRef.current) {
+          void pollPurchase(createdPurchaseIdRef.current);
+        }
       }
     } catch (e) {
       Alert.alert('Checkout unavailable', e instanceof Error ? e.message : 'Try again later');
@@ -386,6 +457,16 @@ export default function BuyScreen() {
           </LinearGradient>
         </Pressable>
 
+        {pendingId ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void pollPurchase(pendingId)}
+            style={styles.statusRow}>
+            <Ionicons name="time-outline" size={13} color="#475569" />
+            <Text style={styles.statusText}>Still confirming payment — check status</Text>
+          </Pressable>
+        ) : null}
+
         <View style={styles.trust}>
           <View style={styles.trustRow}>
             <Ionicons name="shield-checkmark" size={11} color="#059669" />
@@ -629,6 +710,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ctaText: { color: '#fff', fontWeight: '700', fontSize: 14, letterSpacing: 0.3 },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 2,
+  },
+  statusText: { fontSize: 11, fontWeight: '600', color: '#475569' },
   trust: { alignItems: 'center', gap: 2 },
   trustRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   trustText: { fontSize: 10, color: '#64748B', fontWeight: '500' },

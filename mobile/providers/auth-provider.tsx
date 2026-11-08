@@ -28,16 +28,16 @@ import {
   setBiometricEnabled,
   setLastActivityAt,
 } from '@/lib/storage';
-import { defaultCapabilities } from '@/lib/capabilities';
+import {
+  PREVIEW_ACCOUNT,
+  PREVIEW_ENABLED,
+  PREVIEW_SESSION_EXPIRES_AT,
+  PREVIEW_TOKEN,
+} from '@/lib/preview';
 import type { Account } from '@/types/api';
 
-export const PREVIEW_TOKEN = 'dev-preview-token';
 const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
 const ACTIVITY_PERSIST_INTERVAL_MS = 30 * 1000;
-// The preview token is local-only and never sent to the API. Its server-style
-// expiry is long; the same client inactivity timeout still applies in dev.
-const PREVIEW_SESSION_EXPIRES_AT = '2099-12-31T23:59:59.000Z';
-const PREVIEW_BUILD = __DEV__ || process.env.EXPO_PUBLIC_DEV_PREVIEW === '1';
 
 type AuthContextValue = {
   account: Account | null;
@@ -66,21 +66,6 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const PREVIEW_ACCOUNT: Account = {
-  id: 1,
-  email: 'preview@erguard.local',
-  first_name: 'Gabriel',
-  middle_name: 'M',
-  last_name: 'Preview',
-  birthday: '1990-01-01',
-  mobile_number: '+639171234567',
-  email_verified_at: new Date().toISOString(),
-  identity_locked: false,
-  has_linked_cards: false,
-  username: 'preview.member',
-  capabilities: defaultCapabilities({ can_file_claim: false }),
-};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [account, setAccount] = useState<Account | null>(null);
@@ -173,7 +158,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInPreview = useCallback(async () => {
-    if (PREVIEW_BUILD) await persistPreviewSession();
+    // SEC-012: defence in depth — no caller can mint a preview session when
+    // the build is not a development build.
+    if (!PREVIEW_ENABLED) return;
+    await persistPreviewSession();
     await persistLoginActivity(PREVIEW_ACCOUNT.username);
     tokenRef.current = PREVIEW_TOKEN;
     accountRef.current = PREVIEW_ACCOUNT;
@@ -188,10 +176,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     unlockingRef.current = true;
     try {
       const enabled = await isBiometricEnabled();
-      if (!enabled && !PREVIEW_BUILD) return false;
+      if (!enabled && !PREVIEW_ENABLED) return false;
 
       const current = await getSession();
-      if (!current && PREVIEW_BUILD) {
+      if (!current && PREVIEW_ENABLED) {
         // Development preview uses the explicit prompt as its local credential.
         const authenticated = await authenticateWithBiometrics('Unlock ER Guard');
         if (!authenticated) return false;
@@ -210,7 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session = await getBiometricSession();
       }
       if (!session) return false;
-      if (session.token === PREVIEW_TOKEN && PREVIEW_BUILD) {
+      if (session.token === PREVIEW_TOKEN && PREVIEW_ENABLED) {
         await signInPreview();
         return true;
       }
@@ -262,29 +250,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isInactive =
         lastActivityAt !== null && now - lastActivityAt >= INACTIVITY_TIMEOUT_MS;
 
-      if (process.env.EXPO_PUBLIC_DEV_PREVIEW === '1') {
-        if (isInactive) {
-          if (!(await isBiometricEnabled().catch(() => false))) {
-            await clearSession().catch(() => undefined);
-            await clearBiometricSession().catch(() => undefined);
-          }
-          setSessionExpired(true);
-          return;
-        }
-        await persistPreviewSession();
-        lastActivityAtRef.current = now;
-        lastActivityPersistedAtRef.current = now;
-        await setLastActivityAt(now).catch(() => undefined);
-        tokenRef.current = PREVIEW_TOKEN;
-        accountRef.current = PREVIEW_ACCOUNT;
-        setToken(PREVIEW_TOKEN);
-        setAccount(PREVIEW_ACCOUNT);
-        return;
-      }
-
       const stored = await getSession();
       if (stored?.token === PREVIEW_TOKEN) {
-        if (!PREVIEW_BUILD) {
+        // SEC-012: a preview token can never restore a session outside a
+        // development build — clear it instead of trusting the stored value.
+        if (!PREVIEW_ENABLED) {
           await clearSession();
           return;
         }
@@ -348,7 +318,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [persistPreviewSession]);
+  }, []);
 
   useEffect(() => {
     bootstrap();

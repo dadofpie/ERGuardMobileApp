@@ -8,6 +8,9 @@
  *  - the handler debounces (one call per burst) and re-arms
  */
 
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 import { api, setUnauthorizedHandler } from '../api';
 
 const BASE = 'https://api.app.medicareplus.com.ph';
@@ -65,6 +68,37 @@ describe('api 401 handling', () => {
 
     await expect(api.getClaims('token')).rejects.toThrow('Unauthorized');
     expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('signs the user out for every authenticated endpoint that guards card and claim data', async () => {
+    const handler = jest.fn();
+    setUnauthorizedHandler(handler);
+
+    for (const call of [
+      () => api.getMe('bad'),
+      () => api.getPurchase('bad', 1),
+      () => api.getClaimVoucher('bad', 1),
+      () => api.revealCard('bad', 1),
+      () => api.deleteAccount('bad'),
+    ]) {
+      mockFetchOnce(401, { ok: false, error: 'Session expired or invalid' });
+      setUnauthorizedHandler(handler);
+      await expect(call()).rejects.toThrow('Session expired or invalid');
+    }
+
+    expect(handler).toHaveBeenCalledTimes(5);
+  });
+
+  it('has no authenticated endpoint outside the session-fatal policy', () => {
+    const source = readFileSync(join(__dirname, '..', 'api.ts'), 'utf8');
+    const optOuts = source.match(/sessionFatal:\s*false/g) ?? [];
+    // The only allowed opt-out is the unauthenticated hospital search.
+    expect(optOuts).toHaveLength(1);
+    const searchIndex = source.indexOf('searchHospitals:');
+    const optOutIndex = source.search(/sessionFatal:\s*false/);
+    expect(optOutIndex).toBeGreaterThan(searchIndex);
+    expect(optOutIndex).toBeLessThan(searchIndex + 2000);
+    expect(source).not.toContain('getClaim:');
   });
 
   it('debounces a burst of 401s into a single handler call and re-arms after 5s', async () => {

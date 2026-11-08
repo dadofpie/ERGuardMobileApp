@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/query-keys';
 import { isValidHandoffToken } from '@/lib/activation';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -34,7 +35,7 @@ export default function ActivationHandoffScreen() {
     (async () => {
       try {
         await api.consumeActivationHandoff(token, raw as string);
-        await queryClient.invalidateQueries({ queryKey: ['cards'] });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.cardsAll });
         await refreshAccount().catch(() => undefined);
         router.replace('/(tabs)/cards');
       } catch (e) {

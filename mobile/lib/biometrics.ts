@@ -47,6 +47,38 @@ export async function authenticateWithBiometrics(promptMessage: string): Promise
   }
 }
 
+export type StepUpOutcome = 'passed' | 'cancelled' | 'unavailable';
+
+/**
+ * Fresh proof of presence for a sensitive action, independent of how long the
+ * session has been open. This is intentionally separate from
+ * `authenticateWithBiometrics` (which gates *unlock*): the device passcode is an
+ * acceptable fallback here because the question is "is the member physically
+ * holding the phone", not "is this the enrolled biometric".
+ *
+ * 'unavailable' means the OS could not present any credential (no passcode set,
+ * simulator, or missing native module). Callers decide whether that is fatal —
+ * destructive actions must fail closed, read-only reveals may degrade.
+ */
+export async function requestStepUp(prompt: string): Promise<StepUpOutcome> {
+  try {
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: prompt,
+      cancelLabel: 'Cancel',
+      fallbackLabel: 'Use passcode',
+      disableDeviceFallback: false,
+    });
+    if (result.success) return 'passed';
+    const error = (result as { error?: string }).error ?? '';
+    if (['not_enrolled', 'not_available', 'passcode_not_set'].includes(error)) {
+      return 'unavailable';
+    }
+    return 'cancelled';
+  } catch {
+    return 'unavailable';
+  }
+}
+
 /** Directs the user to Settings → Face ID & Passcode to enroll a biometric. */
 export function alertEnrollBiometrics(): Promise<void> {
   return new Promise<void>((resolve) => {

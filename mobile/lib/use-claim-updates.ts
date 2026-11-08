@@ -35,15 +35,41 @@ export function useClaimUpdates({
     const owner = Symbol('claim-poll');
     activeOwner = owner;
     let stopped = false;
+    let paused = false;
     let controller: AbortController | null = null;
     let backoffMs = 0;
+    let resume: (() => void) | null = null;
+
+    // LOGIC-05: a held long-poll must not keep running while the app is
+    // backgrounded (Android keeps JS alive). Abort it on the way out and
+    // re-issue one held request when the member returns.
+    const waitUntilActive = () =>
+      new Promise<void>((resolve) => {
+        resume = resolve;
+      });
 
     const foregroundSub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && !stopped) onChangedRef.current();
+      if (stopped) return;
+      if (state === 'active') {
+        if (paused) {
+          paused = false;
+          const resumeLoop = resume;
+          resume = null;
+          resumeLoop?.();
+        }
+        onChangedRef.current();
+        return;
+      }
+      paused = true;
+      controller?.abort();
     });
 
     const loop = async () => {
       while (!stopped) {
+        if (paused) {
+          await waitUntilActive();
+          continue;
+        }
         controller = new AbortController();
         try {
           const changed = await api.pollClaimUpdates(token, 20, controller.signal);
@@ -52,6 +78,9 @@ export function useClaimUpdates({
           if (changed.length) onChangedRef.current();
         } catch (e) {
           if (stopped) return;
+          // Backgrounding aborts the held request on purpose; do not treat it
+          // as a network failure or rack up backoff.
+          if (paused) continue;
           const err = e as { status?: number; retryAfter?: number };
           // Session ended: the global handler already signed the user out.
           if (err?.status === 401) return;
@@ -70,6 +99,7 @@ export function useClaimUpdates({
       stopped = true;
       if (activeOwner === owner) activeOwner = null;
       controller?.abort();
+      resume?.();
       foregroundSub.remove();
     };
   }, [token, enabled]);

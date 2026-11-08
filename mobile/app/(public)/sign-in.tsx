@@ -29,12 +29,11 @@ import { createAppleFlow, createGoogleFlow } from '@/lib/auth-flow-store';
 import { isAppleSignInAvailable, signInWithAppleNative } from '@/lib/apple-auth';
 import { signInWithGoogleNative } from '@/lib/google-auth';
 import { MEDICAL_DISCLAIMER, legalUrl } from '@/constants/legal';
+import { PREVIEW_ENABLED } from '@/lib/preview';
 import { getLastLoginIdentifier } from '@/lib/session';
 import { isBiometricEnabled } from '@/lib/storage';
 import { useAppConfig } from '@/lib/use-app-config';
 import { useAuth } from '@/providers/auth-provider';
-
-const DEV_PREVIEW_ENABLED = __DEV__ || process.env.EXPO_PUBLIC_DEV_PREVIEW === '1';
 
 /** Google "G" mark (brand colors) for the Continue with Google button. */
 function GoogleMark() {
@@ -377,7 +376,7 @@ export default function SignInScreen() {
           </Link>
         </Text>
 
-        {DEV_PREVIEW_ENABLED ? (
+        {PREVIEW_ENABLED ? (
           <Pressable
             accessibilityRole="button"
             disabled={previewLoading}
