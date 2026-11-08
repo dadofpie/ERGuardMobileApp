@@ -313,7 +313,7 @@ export default function FileClaimScreen() {
             text: 'Continue for manual review',
             onPress: () => {
               setAcknowledged(true);
-              submit(uris, files);
+              submit(uris, files, true);
             },
           },
         ],
@@ -323,7 +323,7 @@ export default function FileClaimScreen() {
     submit(uris, files);
   };
 
-  const submit = async (uris: string[], images: PickedFile[]) => {
+  const submit = async (uris: string[], images: PickedFile[], acknowledgedOverride?: boolean) => {
     if (submittingRef.current) return;
     if (!token || !canFileClaim(account) || !selected) {
       Alert.alert('Eligible card required', 'Link an eligible ER Guard card before filing a claim.');
@@ -348,7 +348,7 @@ export default function FileClaimScreen() {
       ocrStatus,
       ocrModel: ocrSource === 'Gemini' ? 'gemini-3.1-flash-lite' : undefined,
       extracted,
-      nameReviewAcknowledged: acknowledged,
+      nameReviewAcknowledged: acknowledgedOverride ?? acknowledged,
     };
     const error = validateInvoiceClaim(form, images.length);
     if (error) {
