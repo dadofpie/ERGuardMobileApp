@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import * as ScreenCapture from 'expo-screen-capture';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -22,14 +23,17 @@ import { PURCHASE_ENABLED } from '@/constants/flags';
 import { colors, radii, spacing } from '@/constants/theme';
 import { hostOf, isAllowedActivationUrl } from '@/lib/activation';
 import { api } from '@/lib/api';
-import { authenticateWithBiometrics } from '@/lib/biometrics';
-import { isBiometricEnabled } from '@/lib/storage';
+import { requestStepUp } from '@/lib/biometrics';
+import { CARDS_STALE_MS, queryKeys } from '@/lib/query-keys';
 import { useAppConfig } from '@/lib/use-app-config';
 import { cardArtSource } from '@/lib/card-designs';
 import { useAuth } from '@/providers/auth-provider';
 import type { ErGuardCard } from '@/types/api';
 
 const REVEAL_TIMEOUT_MS = 30_000;
+// Shortened window when the OS could not present any credential (no passcode
+// set, simulator). Revealing still works, but for less time.
+const REVEAL_TIMEOUT_NO_STEP_UP_MS = 15_000;
 
 function formatPan(raw: string) {
   const digits = raw.replace(/\D/g, '');
@@ -55,12 +59,21 @@ export default function CardsScreen() {
   );
   const [busy, setBusy] = useState(false);
   const configQuery = useAppConfig();
+  // Server kill switch wins over the local build flag.
+  const purchaseEnabled =
+    PURCHASE_ENABLED && configQuery.data?.feature_flags?.purchase_enabled !== false;
   const revealTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  // SEC-015: Android FLAG_SECURE / iOS capture blocking while a PAN is on screen.
+  const captureBlockedRef = useRef(false);
 
   const hideAllRevealed = useCallback(() => {
     Object.values(revealTimers.current).forEach(clearTimeout);
     revealTimers.current = {};
     setRevealed({});
+    if (captureBlockedRef.current) {
+      captureBlockedRef.current = false;
+      void ScreenCapture.allowScreenCaptureAsync().catch(() => undefined);
+    }
   }, []);
 
   // Hide full card numbers when the app backgrounds, the user signs out, or the screen unmounts.
@@ -78,9 +91,10 @@ export default function CardsScreen() {
   }, [token, hideAllRevealed]);
 
   const cardsQuery = useQuery({
-    queryKey: ['cards', token],
+    queryKey: queryKeys.cards(token),
     queryFn: () => api.getCards(token!),
     enabled: !!token && !isPreview,
+    staleTime: CARDS_STALE_MS,
   });
 
   const activate = async (card: ErGuardCard) => {
@@ -151,12 +165,16 @@ export default function CardsScreen() {
     }
     if (!token || isPreview) return;
     try {
-      if (await isBiometricEnabled().catch(() => false)) {
-        const ok = await authenticateWithBiometrics('Verify it is you to reveal your card number');
-        if (!ok) return;
-      }
+      // SEC-014: fresh proof of presence for every reveal, even when the member
+      // never opted into biometric unlock, and regardless of session age.
+      const stepUp = await requestStepUp('Verify it is you to reveal your card number');
+      if (stepUp === 'cancelled') return;
       const full = await api.revealCard(token, card.activation_id);
       setRevealed((p) => ({ ...p, [card.activation_id]: formatPan(full.card_number) }));
+      if (!captureBlockedRef.current) {
+        captureBlockedRef.current = true;
+        void ScreenCapture.preventScreenCaptureAsync().catch(() => undefined);
+      }
       clearTimeout(revealTimers.current[card.activation_id]);
       revealTimers.current[card.activation_id] = setTimeout(() => {
         delete revealTimers.current[card.activation_id];
@@ -165,7 +183,7 @@ export default function CardsScreen() {
           delete next[card.activation_id];
           return next;
         });
-      }, REVEAL_TIMEOUT_MS);
+      }, stepUp === 'passed' ? REVEAL_TIMEOUT_MS : REVEAL_TIMEOUT_NO_STEP_UP_MS);
     } catch (e) {
       Alert.alert('Could not reveal card', e instanceof Error ? e.message : 'Try again');
     }
@@ -210,7 +228,7 @@ export default function CardsScreen() {
     <View style={[styles.screen, { paddingTop: insets.top + spacing.md }]}>
       <Text style={styles.title}>My cards</Text>
       <View style={styles.actionsRow}>
-        {PURCHASE_ENABLED ? (
+        {purchaseEnabled ? (
           <Button label="Buy ER Guard" onPress={() => router.push('/buy')} />
         ) : null}
         <Button label="Link card" variant="secondary" onPress={() => setLinkOpen(true)} />

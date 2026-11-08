@@ -31,6 +31,7 @@ import { formatHmInput, isValidHm, nowHm, withEmergencyTime } from '@/lib/emerge
 import { useClaimUpdates } from '@/lib/use-claim-updates';
 import { canFileClaim, cardlessClaimEmptyMessage, coverageWaitingDate, isEligibleClaimCard } from '@/lib/capabilities';
 import { getEmergencyLocation, type DeviceLocation } from '@/lib/location';
+import { CARDS_STALE_MS, CLAIMS_STALE_MS, queryKeys } from '@/lib/query-keys';
 import { useAppConfig } from '@/lib/use-app-config';
 import { formatVoucherShare } from '@/lib/voucher';
 import { useAuth } from '@/providers/auth-provider';
@@ -305,16 +306,18 @@ export default function ClaimsScreen() {
 
   const configQuery = useAppConfig();
   const cardsQuery = useQuery({
-    queryKey: ['cards', token],
+    queryKey: queryKeys.cards(token),
     queryFn: () => api.getCards(token!),
     enabled: !!token && !isPreview,
     retry: false,
+    staleTime: CARDS_STALE_MS,
   });
   const claimsQuery = useQuery({
-    queryKey: ['claims', token],
+    queryKey: queryKeys.claims(token),
     queryFn: () => api.getClaims(token!),
     enabled: !!token && !isPreview,
     retry: false,
+    staleTime: CLAIMS_STALE_MS,
     placeholderData: (previous) => previous,
   });
   // Live LOA status: the ticketing backend holds this request open and it

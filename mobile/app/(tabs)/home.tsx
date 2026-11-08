@@ -13,6 +13,7 @@ import { PURCHASE_ENABLED } from '@/constants/flags';
 import { colors, spacing } from '@/constants/theme';
 import { legalUrl } from '@/constants/legal';
 import { api } from '@/lib/api';
+import { queryKeys, CARDS_STALE_MS } from '@/lib/query-keys';
 import { useAppConfig } from '@/lib/use-app-config';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -21,11 +22,15 @@ export default function HomeScreen() {
   const { account, token, isPreview } = useAuth();
 
   const configQuery = useAppConfig();
+  // Server kill switch wins over the local build flag.
+  const purchaseEnabled =
+    PURCHASE_ENABLED && configQuery.data?.feature_flags?.purchase_enabled !== false;
   const cardsQuery = useQuery({
-    queryKey: ['cards', token],
+    queryKey: queryKeys.cards(token),
     queryFn: () => api.getCards(token!),
     enabled: !!token && !isPreview,
     retry: false,
+    staleTime: CARDS_STALE_MS,
   });
 
   const cards = cardsQuery.data ?? [];
@@ -91,7 +96,7 @@ export default function HomeScreen() {
             tint: '#FFF0EE',
             onPress: () => Linking.openURL(CUSTOMER_SERVICE_TEL),
           },
-          ...(PURCHASE_ENABLED
+          ...(purchaseEnabled
             ? [
                 {
                   key: 'buy',

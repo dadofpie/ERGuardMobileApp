@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/query-keys';
 
 /**
  * Shared app-config query. Remote config (hotlines, feature flags, legal
@@ -10,7 +11,7 @@ import { api } from '@/lib/api';
  */
 export function useAppConfig() {
   return useQuery({
-    queryKey: ['config'],
+    queryKey: queryKeys.config,
     queryFn: api.getConfig,
     retry: false,
     staleTime: 5 * 60_000,

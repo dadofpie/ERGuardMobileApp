@@ -42,6 +42,11 @@ type ApiError = Error & { status?: number; field?: string; code?: string; retryA
  * of surfacing raw "Session expired or invalid" errors on every screen.
  * Public auth endpoints (login/signup/OTP) legitimately return 401 and are
  * excluded so their error messages still reach the form.
+ *
+ * Policy: every *authenticated* endpoint uses the default `sessionFatal: true`.
+ * The only deliberate opt-out is the unauthenticated hospital search, which
+ * must not sign the user out when the public proxy rejects a request. Adding a
+ * new opt-out requires a test in `__tests__/api-401.test.ts`.
  */
 const PUBLIC_AUTH_PATHS = /\/api\/patient\/er-guard\/auth\//;
 
@@ -420,12 +425,6 @@ export const api = {
       '/api/patient/er-guard/claims/invoice-extract', token, form, 60_000,
     );
   },
-
-  getClaim: (token: string, ticketId: number) =>
-    request<{ ok: true; claim: ClaimTicket }>(
-      `/api/patient/er-guard/claims/${ticketId}`,
-      { token, timeoutMs: READ_TIMEOUT_MS, sessionFatal: false },
-    ).then((r) => r.claim),
 
   getClaimVoucher: (token: string, ticketId: number) =>
     request<{ ok: true; voucher: ClaimVoucher }>(

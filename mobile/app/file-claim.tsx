@@ -26,6 +26,7 @@ import {
   validateInvoiceClaim,
 } from '@/lib/invoice-claim-payload';
 import { getEmergencyLocation, type DeviceLocation } from '@/lib/location';
+import { CARDS_STALE_MS, queryKeys } from '@/lib/query-keys';
 import { useAppConfig } from '@/lib/use-app-config';
 import {
   OCR_PARSER_VERSION,
@@ -53,7 +54,7 @@ export default function FileClaimScreen() {
   const configQuery = useAppConfig();
   const invoiceClaimsEnabled = configQuery.data?.feature_flags?.invoice_claims_enabled === true;
   const cardsQuery = useQuery({
-    queryKey: ['cards', token],
+    queryKey: queryKeys.cards(token),
     queryFn: () => api.getCards(token!),
     enabled: Boolean(token),
   });
@@ -359,13 +360,13 @@ export default function FileClaimScreen() {
     setSubmitting(true);
     try {
       const { claim } = await api.createInvoiceClaim(token, buildInvoiceClaimPayload(form), images);
-      void queryClient.invalidateQueries({ queryKey: ['claims'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.claimsAll });
       Alert.alert('Submitted for review', `Ticket ${claim.ref} was submitted for review.`, [
         { text: 'OK', onPress: () => router.replace('/(tabs)/claims') },
       ]);
     } catch (e) {
       if (isAmbiguousSubmitError(e)) {
-        void queryClient.invalidateQueries({ queryKey: ['claims'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.claimsAll });
         Alert.alert('Check your claims', CLAIM_MAYBE_RECEIVED_MESSAGE, [
           { text: 'View claims', onPress: () => router.replace('/(tabs)/claims') },
         ]);

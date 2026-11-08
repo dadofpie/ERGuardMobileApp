@@ -22,18 +22,10 @@
         "NSCameraUsageDescription": "ER Guard uses the camera to photograph claim receipts.",
         "NSPhotoLibraryUsageDescription": "ER Guard uses your photos for a profile picture and claim receipts.",
         "NSFaceIDUsageDescription": "Use Face ID to securely unlock your ER Guard account.",
-        "NSLocalNetworkUsageDescription": "ER Guard may use the local network only while connecting to a development computer on the same Wi-Fi network.",
-        "LSMinimumSystemVersion": "16.4",
         "UIRequiresFullScreen": true,
         "UISupportedInterfaceOrientations": [
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationPortraitUpsideDown"
-        ],
-        "UISupportedInterfaceOrientations~ipad": [
-          "UIInterfaceOrientationPortrait",
-          "UIInterfaceOrientationPortraitUpsideDown",
-          "UIInterfaceOrientationLandscapeLeft",
-          "UIInterfaceOrientationLandscapeRight"
         ]
       },
       "privacyManifests": {
@@ -108,7 +100,7 @@
     },
     "android": {
       "package": "com.medicareplus.erguard",
-      "versionCode": 1,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#D31320",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -155,6 +147,10 @@
         {
           "ios": {
             "enableSceneSupport": true
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],

@@ -27,6 +27,7 @@ import { spacing } from '@/constants/theme';
 import { MEDICAL_DISCLAIMER, legalUrl } from '@/constants/legal';
 import { api } from '@/lib/api';
 import { pickProfilePhoto } from '@/lib/pick-files';
+import { CARDS_STALE_MS, queryKeys } from '@/lib/query-keys';
 import { useAppConfig } from '@/lib/use-app-config';
 import {
   alertEnrollBiometrics,
@@ -34,6 +35,7 @@ import {
   disableBiometricUnlock,
   getBiometricStatus,
   rememberCurrentSessionForBiometrics,
+  requestStepUp,
 } from '@/lib/biometrics';
 import { isBiometricEnabled, setBiometricEnabled } from '@/lib/storage';
 import { useAuth } from '@/providers/auth-provider';
@@ -178,6 +180,9 @@ export default function ProfileScreen() {
   const { account, token, isPreview, signOut, refreshAccount } = useAuth();
   const [biometric, setBiometric] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -195,10 +200,11 @@ export default function ProfileScreen() {
 
   const configQuery = useAppConfig();
   const cardsQuery = useQuery({
-    queryKey: ['cards', token],
+    queryKey: queryKeys.cards(token),
     queryFn: () => api.getCards(token!),
     enabled: !!token && !isPreview,
     retry: false,
+    staleTime: CARDS_STALE_MS,
   });
 
   useEffect(() => {
@@ -246,33 +252,48 @@ export default function ProfileScreen() {
   };
 
   const deleteAccount = () => {
-    Alert.alert(
-      'Delete account',
-      'This permanently removes your ER Guard login, profile, and contact details from the app. Insurance records required by regulation may be retained. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (!token || isPreview) {
-              if (isPreview) {
-                Alert.alert('Preview mode', 'Account deletion is disabled for the development preview account.');
-              }
-              return;
-            }
-            try {
-              await api.deleteAccount(token);
-              await disableBiometricUnlock();
-              await signOut();
-              router.replace('/(public)/sign-in');
-            } catch (e) {
-              Alert.alert('Could not delete account', e instanceof Error ? e.message : 'Try again later.');
-            }
-          },
-        },
-      ],
-    );
+    if (isPreview) {
+      Alert.alert('Preview mode', 'Account deletion is disabled for the development preview account.');
+      return;
+    }
+    if (!token) return;
+    setDeleteConfirmation('');
+    setDeleteOpen(true);
+  };
+
+  /**
+   * SEC-014: deletion is irreversible, so it requires typed confirmation and a
+   * fresh device credential. Unlike card reveal this fails closed: without a
+   * passcode/biometric there is no way to prove the member is present.
+   */
+  const confirmDeleteAccount = async () => {
+    if (!token || isPreview || deleting) return;
+    if (deleteConfirmation.trim().toUpperCase() !== 'DELETE') {
+      Alert.alert('Confirmation required', 'Type DELETE to confirm.');
+      return;
+    }
+    const stepUp = await requestStepUp('Verify it is you to delete your account');
+    if (stepUp !== 'passed') {
+      Alert.alert(
+        'Verification required',
+        stepUp === 'unavailable'
+          ? 'Set up Face ID, Touch ID, or a device passcode, then try again.'
+          : 'Account deletion was cancelled.',
+      );
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.deleteAccount(token);
+      await disableBiometricUnlock();
+      setDeleteOpen(false);
+      await signOut();
+      router.replace('/(public)/sign-in');
+    } catch (e) {
+      Alert.alert('Could not delete account', e instanceof Error ? e.message : 'Try again later.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const openEdit = () => {
@@ -749,6 +770,37 @@ export default function ProfileScreen() {
             />
           </View>
           <Button label="Done" onPress={() => setPrefsOpen(false)} variant="secondary" />
+        </View>
+      </View>
+    </Modal>
+
+    <Modal
+      animationType="fade"
+      onRequestClose={() => setDeleteOpen(false)}
+      transparent
+      visible={deleteOpen}>
+      <View style={styles.modalBackdrop}>
+        <Pressable onPress={() => setDeleteOpen(false)} style={StyleSheet.absoluteFill} />
+        <View style={styles.modalCard}>
+          <Text style={styles.modalTitle}>Delete account</Text>
+          <Text style={styles.modalNote}>
+            This permanently removes your ER Guard login, profile, and contact details from the
+            app. Insurance records required by regulation may be retained. This cannot be undone.
+          </Text>
+          <TextField
+            autoCapitalize="characters"
+            label="Type DELETE to confirm"
+            onChangeText={setDeleteConfirmation}
+            placeholder="DELETE"
+            value={deleteConfirmation}
+          />
+          <Button
+            disabled={deleteConfirmation.trim().toUpperCase() !== 'DELETE'}
+            label="Delete account permanently"
+            loading={deleting}
+            onPress={() => void confirmDeleteAccount()}
+          />
+          <Button label="Cancel" onPress={() => setDeleteOpen(false)} variant="secondary" />
         </View>
       </View>
     </Modal>
