@@ -72,7 +72,8 @@ export default function FileClaimScreen() {
   const [extracted, setExtracted] = useState<InvoiceExtracted>({});
   const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrSource, setOcrSource] = useState<'on-device' | 'Gemini'>('on-device');
-  const aiCache = useRef<{ filesKey: string; extracted: InvoiceExtracted } | null>(null);
+  const [extractionId, setExtractionId] = useState<string | null>(null);
+  const aiCache = useRef<{ filesKey: string; extracted: InvoiceExtracted; extractionId: string | null } | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [complaint, setComplaint] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
@@ -197,16 +198,21 @@ export default function FileClaimScreen() {
       if (stale()) return;
       let next = local;
       let source: 'on-device' | 'Gemini' = 'on-device';
+      let nextExtractionId: string | null = null;
       if (token) {
         try {
           const filesKey = uris.join('|');
-          let aiExtracted = aiCache.current?.filesKey === filesKey ? aiCache.current.extracted : null;
+          const cached = aiCache.current?.filesKey === filesKey ? aiCache.current : null;
+          let aiExtracted = cached?.extracted ?? null;
+          let aiExtractionId = cached?.extractionId ?? null;
           if (!aiExtracted) {
             const ai = await api.extractInvoice(token, images);
             aiExtracted = ai.extracted;
-            aiCache.current = { filesKey, extracted: aiExtracted };
+            aiExtractionId = ai.extraction_id ?? null;
+            aiCache.current = { filesKey, extracted: aiExtracted, extractionId: aiExtractionId };
           }
           next = { ...local, ...aiExtracted };
+          nextExtractionId = aiExtractionId;
           available = true;
           source = 'Gemini';
         } catch {
@@ -215,6 +221,7 @@ export default function FileClaimScreen() {
       }
       if (stale()) return;
       setOcrSource(source);
+      setExtractionId(nextExtractionId);
       setExtracted(next);
       setOcrState({ available, failed: false });
       const touched = touchedRef.current;
@@ -348,6 +355,7 @@ export default function FileClaimScreen() {
       location: claimLocation,
       ocrStatus,
       ocrModel: ocrSource === 'Gemini' ? 'gemini-3.1-flash-lite' : undefined,
+      ocrExtractionId: ocrSource === 'Gemini' ? extractionId : null,
       extracted,
       nameReviewAcknowledged: acknowledgedOverride ?? acknowledged,
     };

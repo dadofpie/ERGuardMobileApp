@@ -21,6 +21,8 @@ export type InvoiceClaimForm = {
   location?: { label?: string | null; latitude?: number | null; longitude?: number | null } | null;
   ocrStatus: OcrStatus;
   ocrModel?: string;
+  /** Server-owned AI extraction reference; lets the server verify the OCR result. */
+  ocrExtractionId?: string | null;
   extracted: InvoiceExtracted;
   nameReviewAcknowledged: boolean;
 };
@@ -114,6 +116,7 @@ export function buildInvoiceClaimPayload(form: InvoiceClaimForm) {
       status: form.ocrStatus,
       extracted: form.extracted,
       name_review_acknowledged: form.nameReviewAcknowledged || form.ocrStatus === 'matched',
+      ...(form.ocrExtractionId ? { extraction_id: form.ocrExtractionId } : {}),
     },
   };
 }

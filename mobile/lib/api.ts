@@ -421,7 +421,12 @@ export const api = {
   extractInvoice: (token: string, files: { uri: string; name: string; mime: string }[]) => {
     const form = new FormData();
     files.forEach((file) => appendFile(form, 'files', file));
-    return uploadForm<{ ok: true; extracted: import('@/lib/invoice-ocr').InvoiceExtracted; model: string }>(
+    return uploadForm<{
+      ok: true;
+      extracted: import('@/lib/invoice-ocr').InvoiceExtracted;
+      model: string;
+      extraction_id?: string;
+    }>(
       '/api/patient/er-guard/claims/invoice-extract', token, form, 60_000,
     );
   },
